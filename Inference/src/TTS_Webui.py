@@ -1,5 +1,3 @@
-frontend_version = "2.4.1 240326"
-
 from datetime import datetime
 import gradio as gr
 import json, os
@@ -17,6 +15,7 @@ sys.path.append(now_dir)
 
 # 读取config.json
 from Inference.src.config_manager import Inference_Config
+from Inference.src.config_manager import __version__ as frontend_version
 inference_config = Inference_Config()
 
 config_path = inference_config.config_path

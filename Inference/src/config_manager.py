@@ -1,8 +1,7 @@
+__version__ = "2.4.2 240408"
+
 import os,  json
 import torch
-
-# 取得模型文件夹路径
-global models_path
 
 
 class Inference_Config():
@@ -11,7 +10,7 @@ class Inference_Config():
         self.models_path = "trained"
         if os.path.exists(self.config_path):
             with open(self.config_path, 'r', encoding='utf-8') as f:
-                config = json.load(f)
+                config:dict = json.load(f)
                 self.workers = config.get("workers", 10)
                 self.models_path = config.get("models_path", "trained")
                 self.tts_host = config.get("tts_host", "0.0.0.0")
@@ -28,6 +27,7 @@ class Inference_Config():
                 if self.enable_auth:
                     self.users = config.get("user", {})
 
+global inference_config
 inference_config = Inference_Config()
 
 models_path = inference_config.models_path
@@ -93,7 +93,7 @@ def auto_generate_infer_config(character_path):
             }
         }
     else:
-        raise Exception("找不到wav参考文件！请把有效wav文件放置在模型文件夹下。否则效果可能会非常怪")
+        raise Exception("找不到wav参考文件！请把有效wav文件放置在模型文件夹下。")
         pass
     # Check if the essential model files were found
     if ckpt_file_found and pth_file_found:
@@ -109,11 +109,11 @@ def auto_generate_infer_config(character_path):
         return "Required model files (.ckpt or .pth) not found in character_path directory."
 
 def update_character_info():
-    try:
-        with open(os.path.join(models_path, "character_info.json"), "r", encoding='utf-8') as f:
-            default_character = json.load(f).get("deflaut_character", None)
-    except:
-        default_character = ""
+    # try:
+    #     with open(os.path.join(models_path, "character_info.json"), "r", encoding='utf-8') as f:
+    #         default_character = json.load(f).get("deflaut_character", None)
+    # except:
+    default_character = ""
     characters_and_emotions = {}
     for character_subdir in [f for f in os.listdir(models_path) if os.path.isdir(os.path.join(models_path, f))]:
         character_subdir = character_subdir
@@ -130,9 +130,6 @@ def update_character_info():
                 characters_and_emotions[character_subdir] = ["default"]
         else:
             characters_and_emotions[character_subdir] = ["default"]
-                    
-    with open(os.path.join(models_path, "character_info.json"), "w", encoding='utf-8') as f:
-        json.dump({"deflaut_character": default_character, "characters_and_emotions": characters_and_emotions}, f, ensure_ascii=False, indent=4)
 
     return {"deflaut_character": default_character, "characters_and_emotions": characters_and_emotions}
 
@@ -186,33 +183,31 @@ def get_device_info():
         return device, is_half
 
 
+def get_params_config():
+    try:
+        with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "params_config.json"), "r", encoding="utf-8") as f:
+            return json.load(f)
+    except:
+        raise FileNotFoundError("params_config.json not found.")
+    
+    
+global params_config
+params_config = get_params_config()
+
 def get_deflaut_character_name():
     global default_character
     try:
         return default_character
     except:
-        character_info_path = os.path.join(models_path, "character_info.json")
-        default_character = None
+        
+        default_character = params_config["character"]["default"]
 
-        if os.path.exists(character_info_path):
-            with open(character_info_path, "r", encoding='utf-8') as f:
-                try:
-                    character_info = json.load(f)
-                    default_character = character_info.get("deflaut_character")
-                except:
-                    pass
         if default_character in ["", None, "default"]:
             default_character=None
-        if default_character is None or not os.path.exists(os.path.join(models_path, default_character)):
-            # List all items in models_path
-            all_items = os.listdir(models_path)
             
-            # Filter out only directories (folders) from all_items
-            trained_folders = [item for item in all_items if os.path.isdir(os.path.join(models_path, item))]
-            
-            # If there are any directories found, set the first one as the default character
-            if trained_folders:
-                default_character = trained_folders[0]
+        if default_character is None:
+            characters_and_emotions = update_character_info()["characters_and_emotions"]
+            default_character = list(characters_and_emotions.keys())[0]
 
         return default_character
 

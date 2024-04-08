@@ -167,16 +167,16 @@ def get_deflaut_character_name():
     import os
     import json
 
-    character_info_path = os.path.join(models_path, "character_info.json")
+    # character_info_path = os.path.join(models_path, "character_info.json")
     default_character = None
 
-    if os.path.exists(character_info_path):
-        with open(character_info_path, "r", encoding='utf-8') as f:
-            try:
-                character_info = json.load(f)
-                default_character = character_info.get("deflaut_character")
-            except:
-                pass
+    # if os.path.exists(character_info_path):
+    #     with open(character_info_path, "r", encoding='utf-8') as f:
+    #         try:
+    #             character_info = json.load(f)
+    #             default_character = character_info.get("deflaut_character")
+    #         except:
+    #             pass
 
     if default_character is None or not os.path.exists(os.path.join(models_path, default_character)):
         # List all items in models_path
@@ -200,7 +200,7 @@ def match_character_emotion(character_path):
         return None, None, None
     
 
-def get_wav_from_text_api(text, text_language, top_k=12, top_p=0.6, temperature=0.6, character_emotion="default", cut_method="auto_cut", stream=False):
+def get_wav_from_text_api(text, text_language, top_k=12, top_p=0.6, temperature=0.6, character_emotion="default", cut_method="auto_cut", stream=False, **kwargs):
     # 加载环境配置
     config = load_infer_config(os.path.join(models_path, character_name))
     
@@ -254,8 +254,9 @@ def get_wav_from_text_api(text, text_language, top_k=12, top_p=0.6, temperature=
 
 
 def update_character_info():
-    with open(os.path.join(models_path, "character_info.json"), "r", encoding='utf-8') as f:
-        default_character = json.load(f).get("deflaut_character", None)
+    # with open(os.path.join(models_path, "character_info.json"), "r", encoding='utf-8') as f:
+    #     default_character = json.load(f).get("deflaut_character", None)
+    default_character = None
     characters_and_emotions = {}
     for character_subdir in [f for f in os.listdir(models_path) if os.path.isdir(os.path.join(models_path, f))]:
         if os.path.exists(os.path.join(models_path, character_subdir, "infer_config.json")):
@@ -272,8 +273,8 @@ def update_character_info():
         else:
             characters_and_emotions[character_subdir] = ["default"]
                     
-    with open(os.path.join(models_path, "character_info.json"), "w", encoding='utf-8') as f:
-        json.dump({"deflaut_character": default_character, "characters_and_emotions": characters_and_emotions}, f, ensure_ascii=False, indent=4)
+    # with open(os.path.join(models_path, "character_info.json"), "w", encoding='utf-8') as f:
+    #     json.dump({"deflaut_character": default_character, "characters_and_emotions": characters_and_emotions}, f, ensure_ascii=False, indent=4)
 
     return {"deflaut_character": default_character, "characters_and_emotions": characters_and_emotions}
         

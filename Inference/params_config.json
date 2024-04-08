@@ -11,11 +11,17 @@
         "alias": ["text", "txt", "tex", "t"],
         "default": ""
     },
-    "cha_name": {
+    "text_language": {
+        "type": "string",
+        "description": "Language of the text.",
+        "alias": ["text_language", "lang", "language","lan","text_lang"],
+        "default": "auto"
+    },
+    "character": {
         "type": "string",
         "description": "Character name for the model.",
         "alias": ["cha_name", "character", "model_name", "cha", "spk" , "speaker"],
-        "default": null
+        "default": ""
     },
     "speaker_id": {
         "type": "int",
@@ -29,17 +35,11 @@
         "alias": ["character_emotion", "emotion"],
         "default": "default"
     },
-    "text_language": {
-        "type": "string",
-        "description": "Language of the text.",
-        "alias": ["text_language", "lang", "language","lan"],
-        "default": "auto"
-    },
     "batch_size": {
         "type": "int",
         "description": "Batch size for processing.",
         "alias": ["batch_size", "batch"],
-        "default": null
+        "default": 10
     },
     "speed": {
         "type": "float",
@@ -94,5 +94,11 @@
         "description": "Format of the output audio.",
         "alias": ["format"],
         "default": "wav"
+    },
+    "loudness": {
+        "type": "float",
+        "description": "Loudness of the audio.",
+        "alias": ["loudness"],
+        "default": null
     }
 }

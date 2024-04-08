@@ -1,6 +1,3 @@
-backend_version = "2.4.1 240326"
-print(f"Backend version: {backend_version}")
-
 # 在开头加入路径
 import os, sys
 
@@ -13,6 +10,9 @@ now_dir = os.getcwd()
 sys.path.append(now_dir)
 # sys.path.append(os.path.join(now_dir, "GPT_SoVITS"))
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from Inference.src.config_manager import __version__ as backend_version
+print(f"Backend version: {backend_version}")
 
 import soundfile as sf
 from fastapi import FastAPI, Request, HTTPException
@@ -29,7 +29,8 @@ import hashlib, json
 
 
 # 从配置文件读取配置
-from Inference.src.config_manager import Inference_Config
+from Inference.src.config_manager import Inference_Config, params_config
+from Inference.src.TTS_Instance import TTS_Task
 inference_config = Inference_Config()
 
 workers = inference_config.workers
@@ -53,61 +54,13 @@ except ImportError:
 if not is_classic:
     from Inference.src.TTS_Instance import TTS_instance
     from Inference.src.config_manager import update_character_info,  get_deflaut_character_name
-    text_count = {}
-    for character in update_character_info()['characters_and_emotions']:
-        text_count[character.lower()] = 0
-    max_instances = 1
-    tts_instances = [TTS_instance() for _ in range(max_instances)]
+    tts_instance = TTS_instance() 
 else:
     from Inference.src.classic_inference.classic_load_infer_info import load_character, character_name, get_wav_from_text_api,  update_character_info
     pass
 
-
-def generate_audio(cha_name,params):
-    tts_instance_id = get_tts_instance_id(cha_name)
-    instance = tts_instances[tts_instance_id]
-    text_count[instance.character.lower()] += len(params["text"])
-    gen = instance.get_wav_from_text_api(**params)
-    return gen
-
-def get_tts_instance_id(cha_name=None):
-    if cha_name is None or not os.path.exists(os.path.join(models_path, cha_name)):
-        if max_instances>1:
-            cha_name = get_deflaut_character_name()
-        else:
-            cha_name = tts_instances[0].character
-            return 0
-        
-    # 还需要修正，哪怕是用lock
-    # 寻找一个已经加载的实例，如果没有找到，则返回最少使用的实例
-    for tts_instance in tts_instances:
-        if tts_instance.character.lower() == cha_name.lower():
-            return tts_instances.index(tts_instance)
-    
-    least_used_instance = min(tts_instances, key=lambda x: text_count[x.character.lower()])
-    instance_id = tts_instances.index(least_used_instance)
-    
-    print(f"Loading character {cha_name}")
-    
-    least_used_instance.load_character(cha_name)  
-    # 调试语句
-    for index, tts_instance in enumerate(tts_instances):
-        print(f"Instance {index}: {tts_instance.character}, text count: {text_count[tts_instance.character.lower()]}")
-    return instance_id
-
-
 # 存储临时文件的字典
 temp_files = {}
-
-# 用于防止重复请求
-def generate_file_hash(*args):
-    """生成基于输入参数的哈希值，用于唯一标识一个请求"""
-    hash_object = hashlib.md5()
-    for arg in args:
-        hash_object.update(str(arg).encode())
-    return hash_object.hexdigest()
-
-
 
 app = FastAPI()
 
@@ -119,8 +72,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
 
 @app.get('/character_list')
 async def character_list():
@@ -137,128 +88,38 @@ async def speakers():
         "GSVI": speaker_list,
         "GPT-SOVITS": speaker_list
     }
-    return JSONResponse(res)
-params_config = {}
+    return JSONResponse(res)     
 
-def get_params_config():
-    try:
-        with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "params_config.json"), "r", encoding="utf-8") as f:
-            return json.load(f)
-    except:
-        raise FileNotFoundError("params_config.json not found.")
-        
-params_config = get_params_config()        
-
-
-def get_params(data = None):
-    def get_param_value(param_name):
-        # ban disabled features
-        param_config = params_config[param_name]
-        if param_name not in disabled_features:
-            for alias in param_config['alias']:
-                if alias in data:
-                    if param_config['type'] == 'int':
-                        return int(data[alias])
-                    elif param_config['type'] == 'float':
-                        return float(data[alias])
-                    elif param_config['type'] == 'bool':
-                        return str(data[alias]).lower() in ('true', '1', 't', 'y', 'yes', "allow", "allowed")
-                    else:  # 默认为字符串
-                        return urllib.parse.unquote(data[alias])
-        return param_config['default']
-    
-    
-    if params_config is None:
-        raise FileNotFoundError("params_config.json not found.")
-    
-    # 参数提取
-    text = get_param_value('text')
-    if text.strip() == "":
-        raise ValueError("Text cannot be empty.")
-    
-    cha_name = get_param_value('cha_name')
-    speaker_id = get_param_value('speaker_id')
-    if cha_name is None and speaker_id is not None:
-        try:
-            cha_name = list(update_character_info()['characters_and_emotions'])[speaker_id]
-        except:
-            cha_name = None
-    
-
-    text_language = get_param_value('text_language')
-    batch_size = get_param_value('batch_size')
-    if batch_size is None:
-        batch_size = default_batch_size
-    speed = get_param_value('speed')
-    top_k = get_param_value('top_k')
-    top_p = get_param_value('top_p')
-    temperature = get_param_value('temperature')
-    seed = get_param_value('seed')
-    stream = get_param_value('stream')
-    
-    cut_method = get_param_value('cut_method')
-    character_emotion = get_param_value('character_emotion')
-    format = get_param_value('format')
-    
-   
-    # 下面是已经获得了参数后进行的操作
-    if cut_method == "auto_cut":
-        cut_method = f"auto_cut_{default_word_count}"
-    
-    params = {
-        "text": text,
-        "text_language": text_language,
-        
-        "top_k": top_k,
-        "top_p": top_p,
-        "temperature": temperature,
-        "character_emotion": character_emotion,
-        "cut_method": cut_method,
-        "stream": stream
-    }
-    # 如果不是经典模式，则添加额外的参数
-    if not is_classic:
-        params["batch_size"] = batch_size
-        params["speed_factor"] = speed
-        params["seed"] = seed
-    
-    
-    # if not format in ['wav', 'mp3', 'ogg']:
-    #     raise ValueError("Invalid format.")
-    
-    save_temp = get_param_value('save_temp')
-    if save_temp:
-        request_hash = generate_file_hash(text, text_language, top_k, top_p, temperature, character_emotion, cha_name, seed)
-    else:
-        request_hash = None
-    
-    
-    
-    return params, cha_name, format, save_temp, request_hash, stream
-
-
-
+# route 由 json 文件配置
 async def tts(request: Request):
-
-    
     # 尝试从JSON中获取数据，如果不是JSON，则从查询参数中获取
     if request.method == "GET":
         data = request.query_params
     else:
         data = await request.json()
 
-        
-    try:
-        params, cha_name, format, save_temp, request_hash, stream = get_params(data)
-    except Exception as e:
-        return HTTPException(status_code=400, detail=str(e))
+    task = TTS_Task()
+    task.load_from_dict(data)
+    print(task.to_dict())
+    
+    if task.text == "":
+        return HTTPException(status_code=400, detail="Text is empty")
+    
+    params = task.to_dict()
+    character = task.character
+    format = task.format
+    save_temp = task.save_temp
+    request_hash = None if not save_temp else task.md5()
+    stream = task.stream
+    
     
     if not is_classic:
-        gen = generate_audio(cha_name, params)
+        tts_instance.load_character(character)
+        gen = tts_instance.get_wav_from_text_api(**params)
     else:
         global character_name
-        if cha_name is not None and cha_name != character_name and os.path.exists(os.path.join(models_path, cha_name)):
-            character_name = cha_name
+        if character is not None and character != character_name and os.path.exists(os.path.join(models_path, task.character)):
+            character_name = character
             load_character(character_name)
         gen = get_wav_from_text_api(**params)
 
@@ -283,12 +144,12 @@ async def tts(request: Request):
                     format = 'wav'  # 更新格式为 wav
                 
                 tmp_file_path = tmp_file.name
+                task.audio_path = tmp_file_path
                 if save_temp:
                     temp_files[request_hash] = tmp_file_path
             # 返回文件响应，FileResponse 会负责将文件发送给客户端
             return FileResponse(tmp_file_path, media_type=f"audio/{format}", filename=f"audio.{format}")
     else:
-        
         return StreamingResponse(gen,  media_type='audio/wav')
 
 routes = ['/tts']

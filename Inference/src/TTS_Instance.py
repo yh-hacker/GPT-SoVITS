@@ -3,13 +3,18 @@
 import io, wave
 import os, json, sys
 import threading
+from uuid import uuid4
+from typing import List, Dict
+import urllib.parse
+import hashlib
 
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 # sys.path.append(os.path.join(now_dir, "GPT_SoVITS"))
 
-from Inference.src.config_manager import load_infer_config, auto_generate_infer_config, models_path, get_device_info, get_deflaut_character_name
-        
+from Inference.src.config_manager import load_infer_config, auto_generate_infer_config, inference_config, get_device_info, get_deflaut_character_name, params_config, update_character_info
+models_path = inference_config.models_path
+disabled_features = inference_config.disabled_features
 
 dict_language = {
     "中文": "all_zh",#全部按中文识别
@@ -28,6 +33,97 @@ dict_language = {
 
 from GPT_SoVITS.TTS_infer_pack.TTS import TTS, TTS_Config
 
+class TTS_Task:
+    def __init__(self, other_task=None):
+        self.text = ""
+        self.uuid = str(uuid4())
+        self.audio_path = ""
+        
+        self.emotion = params_config["character_emotion"]["default"] if other_task is None else other_task.emotion
+        self.loudness = params_config["loudness"]["default"] if other_task is None else other_task.loudness
+        self.text_language = params_config["text_language"]["default"] if other_task is None else other_task.text_language
+        self.character = params_config["character"]["default"] if other_task is None else other_task.character
+        self.speaker_id = params_config["speaker_id"]["default"] if other_task is None else other_task.speaker_id
+        self.batch_size = params_config["batch_size"]["default"] if other_task is None else other_task.batch_size
+        self.speed = params_config["speed"]["default"] if other_task is None else other_task.speed
+        self.top_k = params_config["top_k"]["default"] if other_task is None else other_task.top_k
+        self.top_p = params_config["top_p"]["default"] if other_task is None else other_task.top_p
+        self.temperature = params_config["temperature"]["default"] if other_task is None else other_task.temperature
+        self.cut_method = params_config["cut_method"]["default"] if other_task is None else other_task.cut_method
+        self.format = params_config["format"]["default"] if other_task is None else other_task.format
+        self.save_temp = params_config["save_temp"]["default"] if other_task is None else other_task.save_temp
+        self.stream = params_config["stream"]["default"] if other_task is None else other_task.stream
+        
+    def load_from_dict(self, data: dict={}):
+        def get_param_value(param_name):
+            # ban disabled features
+            param_config = params_config[param_name]
+            if param_name not in disabled_features:
+                for alias in param_config['alias']:
+                    if alias in data:
+                        if param_config['type'] == 'int':
+                            return int(data[alias])
+                        elif param_config['type'] == 'float':
+                            return float(data[alias])
+                        elif param_config['type'] == 'bool':
+                            return str(data[alias]).lower() in ('true', '1', 't', 'y', 'yes', "allow", "allowed")
+                        else:  # 默认为字符串
+                            return urllib.parse.unquote(data[alias])
+            return param_config['default']
+        assert params_config is not None, "params_config.json not found."
+        # 参数提取
+        self.text = get_param_value('text').strip()
+        
+        self.character = get_param_value('character')
+        self.speaker_id = get_param_value('speaker_id')
+
+        self.text_language = get_param_value('text_language')
+        self.batch_size = get_param_value('batch_size')
+        self.speed = get_param_value('speed')
+        self.top_k = get_param_value('top_k')
+        self.top_p = get_param_value('top_p')
+        self.temperature = get_param_value('temperature')
+        self.seed = get_param_value('seed')
+        
+        self.cut_method = get_param_value('cut_method')
+        self.format = get_param_value('format')
+        self.stream = get_param_value('stream')
+        self.emotion = get_param_value('character_emotion')
+        
+        if self.cut_method == "auto_cut":
+            self.cut_method = f"auto_cut_100"
+        
+    def md5(self):
+        m = hashlib.md5()
+        m.update(self.text.encode())
+        m.update(self.text_language.encode())
+        m.update(self.character.encode())
+        m.update(str(self.speaker_id).encode())
+        m.update(str(self.speed).encode())
+        m.update(str(self.top_k).encode())
+        m.update(str(self.top_p).encode())
+        m.update(str(self.temperature).encode())
+        m.update(str(self.cut_method).encode())
+        m.update(str(self.emotion).encode())
+        return m.hexdigest()
+            
+    def to_dict(self):
+        return {
+            "text": self.text,
+            "text_language": self.text_language,
+            "character_emotion": self.emotion,
+            "batch_size": self.batch_size,
+            "speed": self.speed,
+            "top_k": self.top_k,
+            "top_p": self.top_p,
+            "temperature": self.temperature,
+            "cut_method": self.cut_method,
+            "format": self.format,
+        }
+        
+    def __str__(self):
+        return json.dumps(self.to_dict())
+
 class TTS_instance:
     def __init__(self, character_name = None):
         tts_config = TTS_Config("")
@@ -40,7 +136,7 @@ class TTS_instance:
         self.load_character(character_name)
         
         
-    def inference(self, text, text_lang, 
+    def inference(self, text, text_language, 
               ref_audio_path, prompt_text, 
               prompt_lang, top_k, 
               top_p, temperature, 
@@ -53,7 +149,7 @@ class TTS_instance:
     
         inputs={
             "text": text,
-            "text_lang": text_lang,
+            "text_lang": text_language,
             "ref_audio_path": ref_audio_path,
             "prompt_text": prompt_text if not ref_text_free else "",
             "prompt_lang": prompt_lang,
@@ -91,18 +187,25 @@ class TTS_instance:
             else:
                 print("None chunk")
                 pass
-
-    def load_character(self, cha_name):
-        if cha_name in ["", None]:
-            return
-        if self.character is not None:
-            if type(cha_name) != str:
-                raise Exception(f"The type of character name should be str, but got {type(cha_name)}")
-            if self.character.lower() == cha_name.lower():
+    
+    def load_character_id(self, speaker_id):
+        character = list(update_character_info()['characters_and_emotions'])[speaker_id]
+        return self.load_character(character)
+    
+    def load_character(self, character):
+        if character in ["", None] and self.character in ["", None]:
+            character = get_deflaut_character_name()
+        if self.character not in ["", None]:
+            if type(character) != str:
+                raise Exception(f"The type of character name should be str, but got {type(character)}")
+            if self.character.lower() == character.lower():
                 return
-        character_path=os.path.join(models_path,cha_name)
+        character_path=os.path.join(models_path, character)
         if not os.path.exists(character_path):
-            raise Exception(f"Can't find character folder: {cha_name}")
+            print(f"找不到角色文件夹: {character}，已自动切换到默认角色")
+            character = get_deflaut_character_name()
+            character_path=os.path.join(models_path, character)
+            # raise Exception(f"Can't find character folder: {character}")
         try:
             # 加载配置
             config = load_infer_config(character_path)
@@ -115,17 +218,17 @@ class TTS_instance:
             try:
                 # 尝试调用auto_get_infer_config
                 auto_generate_infer_config(character_path)
-                self.load_character(cha_name)
+                self.load_character(character)
                 return 
             except:
                 # 报错
                 raise Exception("找不到模型文件！请把有效模型放置在模型文件夹下，确保其中至少有pth、ckpt和wav三种文件。")
         # 修改权重
-        self.character = cha_name
+        self.character = character
         with self.lock:
             self.tts_pipline.init_t2s_weights(gpt_path)
             self.tts_pipline.init_vits_weights(sovits_path)
-            print(f"加载角色成功: {cha_name}")
+            print(f"加载角色成功: {character}")
 
 
     def match_character_emotion(self, character_path):
@@ -133,13 +236,17 @@ class TTS_instance:
             # 如果没有reference_audio文件夹，就返回None
             return None, None, None
 
-
+    def get_wav_from_task(self, task: TTS_Task):
+        character = task.character
+        self.load_character(character)
+        return self.get_wav_from_text_api(**task.to_dict())
+        
     def get_wav_from_text_api(
         self,
         text,
-        text_language,
+        text_language="auto",
         batch_size=1,
-        speed_factor=1.0,
+        speed=1.0,
         top_k=12,
         top_p=0.6,
         temperature=0.6,
@@ -147,6 +254,7 @@ class TTS_instance:
         cut_method="auto_cut",
         seed=-1,
         stream=False,
+        **kwargs
     ):
         
         text = text.replace("\r", "\n").replace("<br>", "\n").replace("\t", " ")
@@ -198,7 +306,7 @@ class TTS_instance:
             "temperature": temperature,
             "text_split_method": cut_method, 
             "batch_size": batch_size,
-            "speed_factor": speed_factor,
+            "speed_factor": speed,
             "ref_text_free": ref_free,
             "split_bucket":True,
             "return_fragment":stream,

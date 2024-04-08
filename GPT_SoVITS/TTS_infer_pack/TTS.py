@@ -378,8 +378,14 @@ class TTS:
         )
         with torch.no_grad():
             wav16k, sr = librosa.load(ref_wav_path, sr=16000)
-            if (wav16k.shape[0] > 160000 or wav16k.shape[0] < 48000):
-                raise OSError(i18n("参考音频在3~10秒范围外，请更换！"))
+            if wav16k.shape[0] > 160000:
+                wav16k = wav16k[:160000]
+                # raise OSError("参考音频大于10秒，请更换！")
+            elif wav16k.shape[0] < 48000:
+                # 计算需要填充的静音长度
+                padding_length = 48000 - wav16k.shape[0]
+                # 在音频末尾填充静音
+                wav16k = np.pad(wav16k, (0, padding_length), 'constant', constant_values=(0, 0))
             wav16k = torch.from_numpy(wav16k)
             zero_wav_torch = torch.from_numpy(zero_wav)
             wav16k = wav16k.to(self.configs.device)

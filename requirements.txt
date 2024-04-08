@@ -33,3 +33,5 @@ fastapi
 uvicorn
 wordsegment
 srt
+
+pyloudnorm
