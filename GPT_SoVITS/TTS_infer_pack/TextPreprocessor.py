@@ -130,7 +130,7 @@ class TextPreprocessor:
         textlist=[]
         langlist=[]
         if language in ["auto", "zh", "ja"]:
-            LangSegment.setfilters(["zh","ja","en","ko"])
+            LangSegment.setfilters(["zh","en","ja","ko"])
             for tmp in LangSegment.getTexts(text):
                 if tmp["text"] == "":
                     continue
