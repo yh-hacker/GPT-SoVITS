@@ -54,6 +54,7 @@ except ImportError:
 if not is_classic:
     from Inference.src.TTS_Instance import TTS_instance
     from Inference.src.config_manager import update_character_info,  get_deflaut_character_name
+    from Inference.src.ssml_dealer import SSML_Dealer
     tts_instance = TTS_instance() 
 else:
     from Inference.src.classic_inference.classic_load_infer_info import load_character, character_name, get_wav_from_text_api,  update_character_info
@@ -90,14 +91,7 @@ async def speakers():
     }
     return JSONResponse(res)     
 
-# route 由 json 文件配置
-async def tts(request: Request):
-    # 尝试从JSON中获取数据，如果不是JSON，则从查询参数中获取
-    if request.method == "GET":
-        data = request.query_params
-    else:
-        data = await request.json()
-
+def gsvi_like_tts(data):
     task = TTS_Task()
     task.load_from_dict(data)
     print(task.to_dict())
@@ -151,6 +145,35 @@ async def tts(request: Request):
             return FileResponse(tmp_file_path, media_type=f"audio/{format}", filename=f"audio.{format}")
     else:
         return StreamingResponse(gen,  media_type='audio/wav')
+
+
+def ms_like_tts(data):
+    textType = data.get("textType", None)
+    if "ssml" not in textType.lower():
+        return HTTPException(status_code=400, detail="Invalid textType, the backend only supports SSML-like textType.")
+    inputs = data.get("inputs", [])
+    for input in inputs:
+        if input.get("text", None) is None:
+            return HTTPException(status_code=400, detail="Text is empty")
+        ssml = input["text"]
+        ssml_dealer = SSML_Dealer()
+        audio_path = ssml_dealer.generate_from_ssml(ssml, tts_instance)
+    if audio_path is None:
+        return HTTPException(status_code=500, detail="Failed to generate audio.")
+    return FileResponse(audio_path, media_type='audio/wav')
+
+# route 由 json 文件配置
+async def tts(request: Request):
+    # 尝试从JSON中获取数据，如果不是JSON，则从查询参数中获取
+    if request.method == "GET":
+        data = request.query_params
+    else:
+        data = await request.json()
+
+    if data.get("textType", None) is not None:
+        return ms_like_tts(data)
+    else:
+        return gsvi_like_tts(data)
 
 routes = ['/tts']
 try:

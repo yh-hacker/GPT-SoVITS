@@ -39,7 +39,7 @@ class TTS_Task:
         self.uuid = str(uuid4())
         self.audio_path = ""
         
-        self.emotion = params_config["character_emotion"]["default"] if other_task is None else other_task.emotion
+        self.emotion = params_config["emotion"]["default"] if other_task is None else other_task.emotion
         self.loudness = params_config["loudness"]["default"] if other_task is None else other_task.loudness
         self.text_language = params_config["text_language"]["default"] if other_task is None else other_task.text_language
         self.character = params_config["character"]["default"] if other_task is None else other_task.character
@@ -53,42 +53,57 @@ class TTS_Task:
         self.format = params_config["format"]["default"] if other_task is None else other_task.format
         self.save_temp = params_config["save_temp"]["default"] if other_task is None else other_task.save_temp
         self.stream = params_config["stream"]["default"] if other_task is None else other_task.stream
-        
-    def load_from_dict(self, data: dict={}):
-        def get_param_value(param_name):
-            # ban disabled features
-            param_config = params_config[param_name]
-            if param_name not in disabled_features:
-                for alias in param_config['alias']:
-                    if alias in data:
-                        if param_config['type'] == 'int':
-                            return int(data[alias])
-                        elif param_config['type'] == 'float':
-                            return float(data[alias])
-                        elif param_config['type'] == 'bool':
-                            return str(data[alias]).lower() in ('true', '1', 't', 'y', 'yes', "allow", "allowed")
-                        else:  # 默认为字符串
-                            return urllib.parse.unquote(data[alias])
+    
+    def get_param_value(self, param_name, data, return_default=True, special_dict={}):
+        # ban disabled features
+        param_config = params_config[param_name]
+        if param_name not in disabled_features:
+            for alias in param_config['alias']:
+                if data.get(alias) is not None:
+                    if special_dict.get(data.get(alias)) is not None:
+                        return special_dict[data.get(alias)]
+                    elif param_config['type'] == 'int':
+                        return int(data.get(alias))
+                    elif param_config['type'] == 'float':
+                        x = data.get(alias)
+                        if isinstance(x, str) and x[-1] == "%":
+                            return float(x[:-1]) / 100
+                        return float(x)
+                    elif param_config['type'] == 'bool':
+                        return str(data.get(alias)).lower() in ('true', '1', 't', 'y', 'yes', "allow", "allowed")
+                    else:  # 默认为字符串
+                        return urllib.parse.unquote(data.get(alias))
+        if return_default:
             return param_config['default']
+        else:
+            return None
+        
+    def update_from_param(self, param_name, data, special_dict={}):
+        value = self.get_param_value(param_name, data, return_default=False, special_dict=special_dict)
+        if value is not None:
+            setattr(self, param_name, value)
+    
+    def load_from_dict(self, data: dict={}):
+        
         assert params_config is not None, "params_config.json not found."
         # 参数提取
-        self.text = get_param_value('text').strip()
+        self.text = self.get_param_value('text', data).strip()
         
-        self.character = get_param_value('character')
-        self.speaker_id = get_param_value('speaker_id')
+        self.character = self.get_param_value('character', data)
+        self.speaker_id = self.get_param_value('speaker_id', data)
 
-        self.text_language = get_param_value('text_language')
-        self.batch_size = get_param_value('batch_size')
-        self.speed = get_param_value('speed')
-        self.top_k = get_param_value('top_k')
-        self.top_p = get_param_value('top_p')
-        self.temperature = get_param_value('temperature')
-        self.seed = get_param_value('seed')
+        self.text_language = self.get_param_value('text_language', data)
+        self.batch_size = self.get_param_value('batch_size', data)
+        self.speed = self.get_param_value('speed', data)
+        self.top_k = self.get_param_value('top_k', data)
+        self.top_p = self.get_param_value('top_p', data)
+        self.temperature = self.get_param_value('temperature', data)
+        self.seed = self.get_param_value('seed', data)
         
-        self.cut_method = get_param_value('cut_method')
-        self.format = get_param_value('format')
-        self.stream = get_param_value('stream')
-        self.emotion = get_param_value('character_emotion')
+        self.cut_method = self.get_param_value('cut_method', data)
+        self.format = self.get_param_value('format', data)
+        self.stream = self.get_param_value('stream', data)
+        self.emotion = self.get_param_value('emotion', data)
         
         if self.cut_method == "auto_cut":
             self.cut_method = f"auto_cut_100"
@@ -122,7 +137,9 @@ class TTS_Task:
         }
         
     def __str__(self):
-        return json.dumps(self.to_dict())
+        character = self.character
+        json_content = json.dumps(self.to_dict(), ensure_ascii=False)  # ensure_ascii=False to properly display non-ASCII characters
+        return f"----------------TTS Task--------------\ncharacter: {character}, content: {json_content}\n--------------------------------------"
 
 class TTS_instance:
     def __init__(self, character_name = None):
@@ -204,7 +221,7 @@ class TTS_instance:
         if not os.path.exists(character_path):
             print(f"找不到角色文件夹: {character}，已自动切换到默认角色")
             character = get_deflaut_character_name()
-            character_path=os.path.join(models_path, character)
+            return self.load_character(character)
             # raise Exception(f"Can't find character folder: {character}")
         try:
             # 加载配置
@@ -290,6 +307,10 @@ class TTS_instance:
         try:
             text_language = dict_language[text_language]
             prompt_language = dict_language[prompt_language]
+            if "-" in text_language:
+                text_language = text_language.split("-")[0]
+            if "-" in prompt_language:
+                prompt_language = prompt_language.split("-")[0]
         except:
             text_language = "auto"
             prompt_language = "auto"
@@ -297,10 +318,10 @@ class TTS_instance:
         
         params = {
             "text": text,
-            "text_lang": text_language,
+            "text_lang": text_language.lower(),
             "ref_audio_path": ref_wav_path,
             "prompt_text": prompt_text,
-            "prompt_lang": prompt_language,
+            "prompt_lang": prompt_language.lower(),
             "top_k": top_k,
             "top_p": top_p,
             "temperature": temperature,

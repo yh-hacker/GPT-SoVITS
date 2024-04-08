@@ -527,6 +527,5 @@ with gr.Blocks() as app:
         ],
     )
 
-
-app.launch(show_error=True, share=is_share, inbrowser=True, server_port="7860", server_name="0.0.0.0")
+app.queue().launch(show_error=True, share=is_share, inbrowser=True)
 

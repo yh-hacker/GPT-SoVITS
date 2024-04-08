@@ -14,13 +14,13 @@
     "text_language": {
         "type": "string",
         "description": "Language of the text.",
-        "alias": ["text_language", "lang", "language","lan","text_lang"],
+        "alias": ["text_language", "lang", "language", "lan", "text_lang", "xml:lang"],
         "default": "auto"
     },
     "character": {
         "type": "string",
         "description": "Character name for the model.",
-        "alias": ["cha_name", "character", "model_name", "cha", "spk" , "speaker"],
+        "alias": ["cha_name", "character", "model_name", "cha", "spk" , "speaker", "name", "role"],
         "default": ""
     },
     "speaker_id": {
@@ -29,10 +29,10 @@
         "alias": ["speaker_id",  "id"],
         "default": null
     },
-    "character_emotion": {
+    "emotion": {
         "type": "string",
         "description": "Emotion of the character.",
-        "alias": ["character_emotion", "emotion"],
+        "alias": ["character_emotion", "emotion", "style"],
         "default": "default"
     },
     "batch_size": {
@@ -44,19 +44,19 @@
     "speed": {
         "type": "float",
         "description": "Speed factor for synthesis.",
-        "alias": ["speed", "speed_factor", "spd"],
+        "alias": ["speed", "speed_factor", "spd", "rate"],
         "default": 1.0
     },
     "top_k": {
         "type": "int",
         "description": "Top K parameter for sampling.",
-        "alias": ["top_k"],
+        "alias": ["top_k", "topk"],
         "default": 1
     },
     "top_p": {
         "type": "float",
         "description": "Top P parameter for sampling.",
-        "alias": ["top_p"],
+        "alias": ["top_p", "topp"],
         "default": 0.8
     },
     "temperature": {
@@ -98,7 +98,13 @@
     "loudness": {
         "type": "float",
         "description": "Loudness of the audio.",
-        "alias": ["loudness"],
+        "alias": ["loudness", "volume", "vol"],
+        "default": null
+    },
+    "pitch": {
+        "type": "float",
+        "description": "Pitch of the audio.",
+        "alias": ["pitch"],
         "default": null
     }
 }
