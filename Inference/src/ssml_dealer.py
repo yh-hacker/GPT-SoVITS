@@ -25,6 +25,17 @@ special_dict_speed = {
 }
 
 
+
+special_dict_break_strength = {
+    "x-weak": 0.25,
+    "weak": 0.5,
+    "medium": 0.75,
+    "strong": 1.0,
+    "x-strong": 1.25,
+    "default": 0.75
+}
+
+
 def load_time(time:str) -> float:
     if time.endswith("ms"):
         return float(time[:-2]) / 1000
@@ -62,11 +73,11 @@ class SSML_Dealer:
             task.update_from_param('character', root)
             task.update_from_param('emotion', root)
             task.update_from_param('speed', root, special_dict=special_dict_speed)
-            task.update_from_param('top_k', root)
-            task.update_from_param('top_p', root)
             
-            task.update_from_param('temperature', root)
-            task.update_from_param('batch_size', root)
+            # task.update_from_param('top_k', root)
+            # task.update_from_param('top_p', root)
+            # task.update_from_param('temperature', root)
+            # task.update_from_param('batch_size', root)
             
             # task.update_from_param('loudness', root) # need to recheck
             # task.update_from_param('pitch', root)
@@ -75,9 +86,16 @@ class SSML_Dealer:
             task.stream = False
             if task.text.strip() != "":
                 self.task_queue.append(task.uuid)
-        
+        if root.tail is not None:
+            new_task = TTS_Task(father_task)
+            self.task_list[new_task.uuid] = new_task
+            new_task.text = root.tail.strip()
+            if new_task.text != "":
+                self.task_queue.append(new_task.uuid)
+                root.set("tail_uuid", new_task.uuid)
         for child in root:
             self.analyze_element(child, father_task)
+        
         
     
     def generate_audio_from_element(self, root: ET.Element, default_silence: float = 0.3) -> np.ndarray:
@@ -87,9 +105,15 @@ class SSML_Dealer:
         task = self.task_list[uuid]
         sr = 32000
         # print(f"--------{root.tag}") # debug
-        if root.tag in ["break", "mstts:silence"]:
+        if root.tag in ["break"]:
             # print(f"--------break: {root.get('time')}") # debug
-            duration = load_time(root.get("time"))
+            time_ = root.get("time")
+            duration = 0.75
+            if time_ is not None:
+                duration = load_time(time_)
+            strength_ = root.get("strength")
+            if strength_ in special_dict_break_strength:
+                duration = special_dict_break_strength[strength_]
             audio_data = np.zeros(int(duration * sr))
         elif task.audio_path not in ["", None]:
             audio_data, sr = sf.read(task.audio_path)
@@ -99,6 +123,12 @@ class SSML_Dealer:
         
         if default_silence > 0:
             audio_data = np.concatenate([audio_data, np.zeros(int(default_silence * sr))])
+        
+        if root.get("tail_uuid") is not None:
+            audio_path = self.task_list[root.get("tail_uuid")].audio_path
+            if audio_path not in ["", None]:
+                audio_data_tail, sr = sf.read(audio_path)
+                audio_data = np.concatenate([audio_data, audio_data_tail])
         
         return audio_data
     
@@ -150,13 +180,11 @@ class SSML_Dealer:
 
 if __name__ == "__main__":
     ssml = """
-<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="zh-CN">
-    大可以尝试一下
-    <voice name="夏青">
-        大可以尝试一下
-    </voice>
-    <voice >
-        大可以尝试一下
+<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
+    <voice name="en-US-AvaNeural">
+        Welcome <break /> to text to speech.
+        Welcome <break strength="medium" /> to text to speech.
+        Welcome <break time="750ms" /> to text to speech.
     </voice>
 </speak>
 """
