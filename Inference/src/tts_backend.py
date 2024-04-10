@@ -20,45 +20,23 @@ from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 import tempfile
 import uvicorn  
-import io
-import urllib.parse
-import tempfile
-import hashlib, json
+import json
 
 # 将当前文件所在的目录添加到 sys.path
 
-
-# 从配置文件读取配置
-from Inference.src.config_manager import Inference_Config, params_config
-from Inference.src.TTS_Instance import TTS_Task
-inference_config = Inference_Config()
-
-workers = inference_config.workers
-tts_host = inference_config.tts_host
-tts_port = inference_config.tts_port
-default_batch_size = inference_config.default_batch_size
-default_word_count = inference_config.default_word_count
-enable_auth = inference_config.enable_auth
-is_classic = inference_config.is_classic
-models_path = inference_config.models_path
-disabled_features = inference_config.disabled_features
-if enable_auth:
-    users = inference_config.users
+from Inference.src.TTS_Task import TTS_Task
+from Inference.src.data_analyser import params_analyser, ms_like_analyser
+from Inference.src.config_manager import update_character_info, inference_config
 
 try:
-    from GPT_SoVITS.TTS_infer_pack.TTS import TTS
+    from GPT_SoVITS.TTS_infer_pack.text_segmentation_method import register_method
 except ImportError:
     is_classic = True
+    raise ImportError("GPT_SoVITS is not installed, please use GSVI")
     pass
 
-if not is_classic:
-    from Inference.src.TTS_Instance import TTS_instance
-    from Inference.src.config_manager import update_character_info,  get_deflaut_character_name
-    from Inference.src.ssml_dealer import SSML_Dealer
-    tts_instance = TTS_instance() 
-else:
-    from Inference.src.classic_inference.classic_load_infer_info import load_character, character_name, get_wav_from_text_api,  update_character_info
-    pass
+from Inference.src.TTS_Instance import TTS_instance
+tts_instance = TTS_instance()
 
 # 存储临时文件的字典
 temp_files = {}
@@ -91,32 +69,25 @@ async def speakers():
     }
     return JSONResponse(res)     
 
-def gsvi_like_tts(data):
-    task = TTS_Task()
-    task.load_from_dict(data)
-    print(task.to_dict())
-    
-    if task.text == "":
+def generate_task(task: TTS_Task, adapter: str="gsv_fast"):
+
+    if task.task_type == "text" and task.text.strip() == "":
         return HTTPException(status_code=400, detail="Text is empty")
-    
-    params = task.to_dict()
-    character = task.character
+    elif task.task_type == "ssml" and task.ssml.strip() == "":
+        return HTTPException(status_code=400, detail="SSML is empty")
     format = task.format
     save_temp = task.save_temp
     request_hash = None if not save_temp else task.md5()
     stream = task.stream
     
-    
-    if not is_classic:
-        tts_instance.load_character(character)
-        gen = tts_instance.get_wav_from_text_api(**params)
-    else:
-        global character_name
-        if character is not None and character != character_name and os.path.exists(os.path.join(models_path, task.character)):
-            character_name = character
-            load_character(character_name)
-        gen = get_wav_from_text_api(**params)
-
+    if task.task_type == "text":
+        gen = tts_instance.generate_from_text(task)
+    elif task.task_type == "ssml":
+        # 还不支持 stream
+        audio_path = tts_instance.generate_from_ssml(task)
+        if audio_path is None:
+            return HTTPException(status_code=400, detail="SSML is invalid")
+        return FileResponse(audio_path, media_type=f"audio/{format}", filename=f"audio.{format}")
 
     if stream == False:
         if save_temp and request_hash in temp_files:
@@ -147,33 +118,29 @@ def gsvi_like_tts(data):
         return StreamingResponse(gen,  media_type='audio/wav')
 
 
-def ms_like_tts(data):
-    textType = data.get("textType", None)
-    if "ssml" not in textType.lower():
-        return HTTPException(status_code=400, detail="Invalid textType, the backend only supports SSML-like textType.")
-    inputs = data.get("inputs", [])
-    for input in inputs:
-        if input.get("text", None) is None:
-            return HTTPException(status_code=400, detail="Text is empty")
-        ssml = input["text"]
-        ssml_dealer = SSML_Dealer()
-        audio_path = ssml_dealer.generate_from_ssml(ssml, tts_instance)
-    if audio_path is None:
-        return HTTPException(status_code=500, detail="Failed to generate audio.")
-    return FileResponse(audio_path, media_type='audio/wav')
 
 # route 由 json 文件配置
-async def tts(request: Request):
+async def tts(request: Request, adapter: str = "gsv_fast"):
     # 尝试从JSON中获取数据，如果不是JSON，则从查询参数中获取
     if request.method == "GET":
         data = request.query_params
     else:
         data = await request.json()
 
+    return_type = "audio"
+    # 认定一个请求只有一个任务
     if data.get("textType", None) is not None:
-        return ms_like_tts(data)
+        task : TTS_Task = ms_like_analyser(data)
+        return_type = "json"
     else:
-        return gsvi_like_tts(data)
+        task : TTS_Task = params_analyser(data)
+        
+    if return_type == "audio":
+        return generate_task(task, adapter)
+    else:
+        # todo: return json
+        return generate_task(task, adapter)
+        pass
 
 routes = ['/tts']
 try:
@@ -208,6 +175,11 @@ def print_ipv4_ip(host = "127.0.0.1", port = 5000):
         display_hostname = get_internal_ip()
         if display_hostname != "127.0.0.1":
             print(f"Please use http://{display_hostname}:{port} to access the service.")
+
+
+workers = inference_config.workers
+tts_host = inference_config.tts_host
+tts_port = inference_config.tts_port
 
 if __name__ == "__main__":
     print_ipv4_ip(tts_host, tts_port)

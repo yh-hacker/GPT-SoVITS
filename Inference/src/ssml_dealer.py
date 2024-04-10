@@ -6,7 +6,7 @@ import sys
 sys.path.append(".")
 
 import xml.etree.ElementTree as ET
-from Inference.src.TTS_Instance import TTS_instance, TTS_Task
+from Inference.src.TTS_Instance import TTS_Task
 
 import tempfile
 import soundfile as sf
@@ -50,9 +50,9 @@ class SSML_Dealer:
         self.ssml: str = ""
         self.task_list: Dict[str, TTS_Task] = {}
         self.task_queue : List[str] = []
-        self.audio_download_queue : List[Dict] = []
+        self.audio_download_queue : List[str] = []
         self.root : ET.Element = None
-        self.tts_instance : TTS_instance = None
+        self.tts_instance = None
                     
     def analyze_element(self, root: ET.Element, father_task:TTS_Task):
         task = TTS_Task(father_task)
@@ -140,14 +140,14 @@ class SSML_Dealer:
         except Exception as e:
             raise ValueError("Invalid SSML.")
         
-    def generate_tasks(self, tts_instance:TTS_instance, tmp_dir:str):
+    def generate_tasks(self, tts_instance, tmp_dir:str):
         # 先按照人物排序
         self.task_queue.sort(key=lambda x: self.task_list[x].character)
         for uuid in self.task_queue:
             task = self.task_list[uuid]
             if task.text.strip() == "":
                 continue
-            gen = tts_instance.get_wav_from_task(task)
+            gen = tts_instance.generate_from_text(task)
             sr, audio_data = next(gen)
             
             tmp_file = os.path.join(tmp_dir, f"{task.uuid}.wav")
@@ -168,7 +168,7 @@ class SSML_Dealer:
             sf.write(tmp_file, audio_data, sr, format='wav')
             self.task_list[audio["uuid"]].audio_path = tmp_file
     
-    def generate_from_ssml(self, ssml:str, tts_instance:TTS_instance, format:str="wav"):
+    def generate_from_ssml(self, ssml:str, tts_instance, format:str="wav"):
         self.read_ssml(ssml)
         tmp_dir = tempfile.mkdtemp()
         self.generate_tasks(tts_instance, tmp_dir)
@@ -181,6 +181,8 @@ class SSML_Dealer:
 if __name__ == "__main__":
     ssml = """
 <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
+<audio src="https://d38nvwmjovqyq6.cloudfront.net/va90web25003/companions/Foundations%20of%20Rock/5.04.mp3" >
+</audio>
     <voice name="en-US-AvaNeural">
         Welcome <break /> to text to speech.
         Welcome <break strength="medium" /> to text to speech.
@@ -188,9 +190,9 @@ if __name__ == "__main__":
     </voice>
 </speak>
 """
-    ssml_dealer = SSML_Dealer()
-    tts_instance = TTS_instance()
-    print(ssml_dealer.generate_from_ssml(ssml, tts_instance))
+    # ssml_dealer = SSML_Dealer()
+    # # tts_instance = TTS_instance()
+    # print(ssml_dealer.generate_from_ssml(ssml, tts_instance))
     
-    for task in ssml_dealer.task_list.values():
-        print(task)
+    # for task in ssml_dealer.task_list.values():
+    #     print(task)

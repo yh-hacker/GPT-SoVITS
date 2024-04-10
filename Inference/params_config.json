@@ -5,10 +5,22 @@
         "alias": ["/tts", "/voice/vits", "/text2audio", "/t2s", "/voice"],
         "default": "tts"
     },
+    "task_type":{
+        "type": "string",
+        "description": "Task type for the API.",
+        "alias": ["task_type", "task", "type"],
+        "default": "tts"
+    },
     "text": {
         "type": "string",
         "description": "The text to be synthesized.",
         "alias": ["text", "txt", "tex", "t"],
+        "default": ""
+    },
+    "ssml": {
+        "type": "string",
+        "description": "The SSML text to be synthesized.",
+        "alias": ["ssml", "text", "txt", "tex", "t"],
         "default": ""
     },
     "text_language": {
