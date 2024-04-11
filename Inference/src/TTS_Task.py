@@ -145,6 +145,11 @@ class TTS_Task:
             "cut_method": self.cut_method,
             "format": self.format,
             "seed": self.seed,
+            
+            "stream": self.stream,
+            "loudness": self.loudness,
+            "save_temp": self.save_temp,
+            
         }
         
     def __str__(self):

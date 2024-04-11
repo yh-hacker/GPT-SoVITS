@@ -90,13 +90,11 @@ class GSV_instance:
             return wav_buf.read()
         chunks = self.tts_pipline.run(params)
         yield wave_header_chunk()
-        for sr, chunk in chunks:
-            if chunk is not None:
-                chunk = chunk.tobytes()
-                yield chunk
-            else:
-                print("None chunk")
-                pass
+        # chunk is tuple[int, np.ndarray], 代表了sample_rate和音频数据
+        for chunk in chunks:
+            sample_rate, audio_data = chunk
+            if audio_data is not None:
+                yield audio_data.tobytes()
     
     def load_character_id(self, speaker_id):
         character = list(update_character_info()['characters_and_emotions'])[speaker_id]

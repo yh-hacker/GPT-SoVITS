@@ -118,7 +118,6 @@ def generate_task(task: TTS_Task, adapter: str="gsv_fast"):
         return StreamingResponse(gen,  media_type='audio/wav')
 
 
-
 # route 由 json 文件配置
 async def tts(request: Request, adapter: str = "gsv_fast"):
     # 尝试从JSON中获取数据，如果不是JSON，则从查询参数中获取
@@ -126,7 +125,6 @@ async def tts(request: Request, adapter: str = "gsv_fast"):
         data = request.query_params
     else:
         data = await request.json()
-
     return_type = "audio"
     # 认定一个请求只有一个任务
     if data.get("textType", None) is not None:
@@ -138,7 +136,7 @@ async def tts(request: Request, adapter: str = "gsv_fast"):
     if return_type == "audio":
         return generate_task(task, adapter)
     else:
-        # todo: return json
+        # TODO: return json
         return generate_task(task, adapter)
         pass
 

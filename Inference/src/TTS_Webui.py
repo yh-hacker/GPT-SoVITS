@@ -48,8 +48,6 @@ cut_method_list = ["auto_cut", "cut0", "cut1", "cut2", "cut3", "cut4", "cut5"]
 translated_cut_method_list = [i18n("auto_cut"), i18n("cut0"), i18n("cut1"), i18n("cut2"), i18n("cut3"), i18n("cut4"), i18n("cut5")]
 cut_method_dict = dict(zip(translated_cut_method_list, cut_method_list))
 
-tts_port = 5000
-
 
 def load_character_emotions(character_name, characters_and_emotions):
     emotion_options = ["default"]
@@ -143,7 +141,7 @@ def send_request(
             return gr.Audio(None, type="filepath")
     else:
         # Sending POST request
-        response = requests.post(final_endpoint, json=body, stream=True)
+        # response = requests.post(final_endpoint, json=body, stream=True)
         # Checking if the request was successful
 
         global p, streamAudio

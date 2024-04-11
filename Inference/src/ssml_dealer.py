@@ -25,7 +25,6 @@ special_dict_speed = {
 }
 
 
-
 special_dict_break_strength = {
     "x-weak": 0.25,
     "weak": 0.5,
