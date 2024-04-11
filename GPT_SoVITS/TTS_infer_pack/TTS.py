@@ -27,6 +27,8 @@ from my_utils import load_audio
 from module.mel_processing import spectrogram_torch
 from TTS_infer_pack.text_segmentation_method import splits
 from TTS_infer_pack.TextPreprocessor import TextPreprocessor
+
+import pickle
 i18n = I18nAuto()
 
 # configs/tts_infer.yaml
@@ -198,7 +200,6 @@ class TTS:
         self.bert_tokenizer:AutoTokenizer = None
         self.bert_model:AutoModelForMaskedLM = None
         self.cnhuhbert_model:CNHubert = None
-        
         self._init_models()
         
         self.text_preprocessor:TextPreprocessor = \
@@ -207,6 +208,7 @@ class TTS:
                                             self.configs.device)
         
         
+        self.prompt_cache_path:str = ""
         self.prompt_cache:dict = {
             "ref_audio_path" : None,
             "prompt_semantic": None,
@@ -605,6 +607,9 @@ class TTS:
         self.stop_flag:bool = False
         text:str = inputs.get("text", "")
         text_lang:str = inputs.get("text_lang", "")
+        
+        prompt_cache_path:str = inputs.get("prompt_cache_path", "")
+        
         ref_audio_path:str = inputs.get("ref_audio_path", "")
         prompt_text:str = inputs.get("prompt_text", "")
         prompt_lang:str = inputs.get("prompt_lang", "")
@@ -650,26 +655,41 @@ class TTS:
 
         ###### setting reference audio and prompt text preprocessing ########
         t0 = ttime()
-        if (ref_audio_path is not None) and (ref_audio_path != self.prompt_cache["ref_audio_path"]):
-            self.set_ref_audio(ref_audio_path)
+        
+        if prompt_cache_path not in ["", None] and os.path.exists(prompt_cache_path):
+            if prompt_cache_path != self.prompt_cache_path:
+                with open(prompt_cache_path, "rb") as f:
+                    self.prompt_cache = pickle.load(f)
+                print(i18n("参考音频缓存已加载"))
+                self.prompt_cache_path = prompt_cache_path
+        else:
+            if (ref_audio_path is not None) and (ref_audio_path != self.prompt_cache["ref_audio_path"]):
+                self.set_ref_audio(ref_audio_path)
 
-        if not no_prompt_text:
-            prompt_text = prompt_text.strip("\n")
-            if (prompt_text[-1] not in splits): prompt_text += "。" if prompt_lang != "en" else "."
-            print(i18n("实际输入的参考文本:"), prompt_text)
-            if self.prompt_cache["prompt_text"] != prompt_text:
-                self.prompt_cache["prompt_text"] = prompt_text
-                self.prompt_cache["prompt_lang"] = prompt_lang
-                phones, bert_features, norm_text = \
-                    self.text_preprocessor.segment_and_extract_feature_for_text(
-                                                                        prompt_text, 
-                                                                        prompt_lang)
-                self.prompt_cache["phones"] = phones
-                self.prompt_cache["bert_features"] = bert_features
-                self.prompt_cache["norm_text"] = norm_text
+            if not no_prompt_text:
+                prompt_text = prompt_text.strip("\n")
+                if (prompt_text[-1] not in splits): prompt_text += "。" if prompt_lang != "en" else "."
+                print(i18n("实际输入的参考文本:"), prompt_text)
+                if self.prompt_cache["prompt_text"] != prompt_text:
+                    self.prompt_cache["prompt_text"] = prompt_text
+                    self.prompt_cache["prompt_lang"] = prompt_lang
+                    phones, bert_features, norm_text = \
+                        self.text_preprocessor.segment_and_extract_feature_for_text(
+                                                                            prompt_text, 
+                                                                            prompt_lang)
+                    self.prompt_cache["phones"] = phones
+                    self.prompt_cache["bert_features"] = bert_features
+                    self.prompt_cache["norm_text"] = norm_text
+            
+            if prompt_cache_path not in ["", None]:
+                os.makedirs(os.path.dirname(prompt_cache_path), exist_ok=True)
+                with open(prompt_cache_path, "wb") as f:
+                    pickle.dump(self.prompt_cache, f)
+                print(i18n("参考音频缓存已保存"))
 
         ###### text preprocessing ########
         t1 = ttime()
+
         data:list = None
         if not return_fragment:
             data = self.text_preprocessor.preprocess(text, text_lang, text_split_method)
@@ -812,7 +832,7 @@ class TTS:
                 t5 = ttime()
                 t_45 += t5 - t4
                 if return_fragment:
-                    print("%.3f\t%.3f\t%.3f\t%.3f" % (t1 - t0, t2 - t1, t4 - t3, t5 - t4))
+                    print("############ 各阶段耗时: 处理参考音频 [%.3f]s, 文本处理 [%.3f]s, t2s_model [%.3f]s, vits_model [%.3f]s ############" % (t1 - t0, t2 - t1, t4 - t3, t5 - t4))
                     yield self.audio_postprocess([batch_audio_fragment], 
                                                     self.configs.sampling_rate, 
                                                     None, 
@@ -829,7 +849,7 @@ class TTS:
                     return
 
             if not return_fragment:
-                print("%.3f\t%.3f\t%.3f\t%.3f" % (t1 - t0, t2 - t1, t_34, t_45))
+                print("############ 各阶段耗时: 处理参考音频 [%.3f]s, 文本处理 [%.3f]s, t2s_model [%.3f]s, vits_model [%.3f]s ############" % (t1 - t0, t2 - t1, t4 - t3, t5 - t4))
                 yield self.audio_postprocess(audio, 
                                                 self.configs.sampling_rate, 
                                                 batch_index_list, 

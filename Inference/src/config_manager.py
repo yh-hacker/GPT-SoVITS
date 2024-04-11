@@ -23,6 +23,7 @@ class Inference_Config():
                 self.max_text_length = config.get("max_text_length", -1)
                 self.disabled_features = config.get("disabled_features", [])
                 self.allowed_adapters = config.get("allowed_adapters", ["gsv_fast", "gsv_classic", "azure"])
+                self.save_prompt_cache = config.get("save_prompt_cache", "false").lower() == "true"
                 locale_language = str(config.get("locale", "auto"))
                 self.locale_language = None if locale_language.lower() == "auto" else locale_language
                 if self.enable_auth:

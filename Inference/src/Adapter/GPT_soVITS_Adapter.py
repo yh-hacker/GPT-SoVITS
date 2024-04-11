@@ -1,11 +1,11 @@
-
-
 import io, wave
 import os, json, sys
 import threading
 
 from Inference.src.TTS_Task import TTS_Task
 from Inference.src.ssml_dealer import SSML_Dealer
+
+import hashlib  
 
 now_dir = os.getcwd()
 sys.path.append(now_dir)
@@ -44,8 +44,6 @@ class GSV_instance:
         self.lock = threading.Lock()
         self.load_character(character_name)
 
-        
-        
     def inference(self, text, text_language, 
               ref_audio_path, prompt_text, 
               prompt_lang, top_k, 
@@ -56,7 +54,7 @@ class GSV_instance:
               return_fragment,
               seed
               ):
-    
+
         inputs={
             "text": text,
             "text_lang": text_language,
@@ -95,11 +93,11 @@ class GSV_instance:
             sample_rate, audio_data = chunk
             if audio_data is not None:
                 yield audio_data.tobytes()
-    
+
     def load_character_id(self, speaker_id):
         character = list(update_character_info()['characters_and_emotions'])[speaker_id]
         return self.load_character(character)
-    
+
     def load_character(self, character):
         if character in ["", None] and self.character in ["", None]:
             character = get_deflaut_character_name()
@@ -117,7 +115,7 @@ class GSV_instance:
         try:
             # 加载配置
             config = load_infer_config(character_path)
-            
+
             # 尝试从环境变量获取gpt_path，如果未设置，则从配置文件读取
             gpt_path = os.path.join(character_path,config.get("gpt_path"))
             # 尝试从环境变量获取sovits_path，如果未设置，则从配置文件读取
@@ -138,7 +136,6 @@ class GSV_instance:
             self.tts_pipline.init_vits_weights(sovits_path)
             print(f"加载角色成功: {character}")
 
-
     def match_character_emotion(self, character_path):
         if not os.path.exists(os.path.join(character_path, "reference_audio")):
             # 如果没有reference_audio文件夹，就返回None
@@ -148,12 +145,11 @@ class GSV_instance:
         character = task.character
         self.load_character(character)
         return self.get_wav_from_text_api(**task.to_dict())
-    
+
     def generate_from_ssml(self, task: TTS_Task):
         dealer = SSML_Dealer()
         return dealer.generate_from_ssml(task.ssml, self)
-        
-    
+
     def get_wav_from_text_api(
         self,
         text,
@@ -169,22 +165,23 @@ class GSV_instance:
         stream=False,
         **kwargs
     ):
-        
+
         text = text.replace("\r", "\n").replace("<br>", "\n").replace("\t", " ")
         text = text.replace("……","。").replace("…","。").replace("\n\n","\n").replace("。\n","\n").replace("\n", "。\n")
         # 加载环境配置
-        config = load_infer_config(os.path.join(models_path, self.character))
+        config: dict = load_infer_config(os.path.join(models_path, self.character))
 
         # 尝试从配置中提取参数，如果找不到则设置为None
-        ref_wav_path =  None
-        prompt_text = None
-        prompt_language = None
+        relative_path: str = None
+        ref_wav_path: str = None
+        prompt_text: str = None
+        prompt_language: str = None
         if character_emotion == "auto":
             # 如果是auto模式，那么就自动决定情感
             ref_wav_path, prompt_text, prompt_language = self.match_character_emotion(os.path.join(models_path, self.character))
         if ref_wav_path is None:
             # 未能通过auto匹配到情感，就尝试使用指定的情绪列表
-            emotion_list=config.get('emotion_list', None)# 这是新版的infer_config文件，如果出现错误请删除infer_config.json文件，让系统自动生成 
+            emotion_list:dict=config.get('emotion_list', None)# 这是新版的infer_config文件，如果出现错误请删除infer_config.json文件，让系统自动生成 
             now_emotion="default"
             for emotion, details in emotion_list.items():
                 print(emotion)
@@ -193,12 +190,23 @@ class GSV_instance:
                     break
             for emotion, details in emotion_list.items():
                 if emotion==now_emotion:
-                    ref_wav_path = os.path.join(os.path.join(models_path,self.character), details['ref_wav_path'])
+                    relative_path = details['ref_wav_path']
+                    ref_wav_path = os.path.join(os.path.join(models_path,self.character), relative_path)
                     prompt_text = details['prompt_text']
                     prompt_language = details['prompt_language']
                     break
             if ref_wav_path is None:
                 print("找不到ref_wav_path！请删除infer_config.json文件，让系统自动生成")
+
+        prompt_cache_path = ""
+        
+        if inference_config.save_prompt_cache:
+            md5 = hashlib.md5()
+            md5.update(relative_path.encode())
+            md5.update(prompt_text.encode())
+            md5.update(prompt_language.encode())
+            short_md5 = md5.hexdigest()[:8]
+            prompt_cache_path = os.path.join(models_path, self.character, f"prompt_cache/prompt_cache_{short_md5}.pickle")
 
         try:
             text_language = dict_language[text_language]
@@ -211,10 +219,11 @@ class GSV_instance:
             text_language = "auto"
             prompt_language = "auto"
         ref_free = False
-        
+
         params = {
             "text": text,
             "text_lang": text_language.lower(),
+            "prompt_cache_path": prompt_cache_path,
             "ref_audio_path": ref_wav_path,
             "prompt_text": prompt_text,
             "prompt_lang": prompt_language.lower(),
