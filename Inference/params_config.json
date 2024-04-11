@@ -8,7 +8,7 @@
     "task_type":{
         "type": "string",
         "description": "Task type for the API.",
-        "alias": ["task_type", "task", "type"],
+        "alias": ["task_type", "task", "type", "textType"],
         "default": "tts"
     },
     "text": {
