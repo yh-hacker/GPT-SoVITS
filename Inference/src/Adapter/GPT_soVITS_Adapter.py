@@ -33,7 +33,7 @@ dict_language = {
 from GPT_SoVITS.TTS_infer_pack.TTS import TTS, TTS_Config
 
 
-class GSV_instance:
+class GSV_Instance:
     def __init__(self, character_name = None):
         tts_config = TTS_Config("")
         tts_config.device , tts_config.is_half = get_device_info()
