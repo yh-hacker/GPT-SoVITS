@@ -6,7 +6,7 @@ import sys
 sys.path.append(".")
 
 import xml.etree.ElementTree as ET
-from Inference.src.TTS_Instance import TTS_Task
+from Inference.src.TTS_Task import TTS_Task
 
 import tempfile
 import soundfile as sf
