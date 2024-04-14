@@ -654,23 +654,40 @@ class TTS:
 
         ###### setting reference audio and prompt text preprocessing ########
         t0 = ttime()
-        if (ref_audio_path is not None) and (ref_audio_path != self.prompt_cache["ref_audio_path"]):
-            self.set_ref_audio(ref_audio_path)
+        
+        if prompt_cache_path not in ["", None] and os.path.exists(prompt_cache_path):
+            if prompt_cache_path != self.prompt_cache_path:
+                with open(prompt_cache_path, "rb") as f:
+                    self.prompt_cache = pickle.load(f)
+                print(i18n("参考音频缓存已加载"))
+                self.prompt_cache_path = prompt_cache_path
+        elif not test_mode:
+            # when in test mode, the prompt_cache should be set manually.
+            if (ref_audio_path is not None) and (ref_audio_path != self.prompt_cache["ref_audio_path"]):
+                self.set_ref_audio(ref_audio_path)
+                self.prompt_cache["ref_audio_path"] = ref_audio_path
 
-        if not no_prompt_text:
-            prompt_text = prompt_text.strip("\n")
-            if (prompt_text[-1] not in splits): prompt_text += "。" if prompt_lang != "en" else "."
-            print(i18n("实际输入的参考文本:"), prompt_text)
-            if self.prompt_cache["prompt_text"] != prompt_text:
-                self.prompt_cache["prompt_text"] = prompt_text
-                self.prompt_cache["prompt_lang"] = prompt_lang
-                phones, bert_features, norm_text = \
-                    self.text_preprocessor.segment_and_extract_feature_for_text(
-                                                                        prompt_text, 
-                                                                        prompt_lang)
-                self.prompt_cache["phones"] = phones
-                self.prompt_cache["bert_features"] = bert_features
-                self.prompt_cache["norm_text"] = norm_text
+            if not no_prompt_text:
+                prompt_text = prompt_text.strip("\n")
+                if (prompt_text[-1] not in splits): prompt_text += "。" if prompt_lang != "en" else "."
+                print(i18n("实际输入的参考文本:"), prompt_text)
+                if self.prompt_cache["prompt_text"] != prompt_text:
+                    self.prompt_cache["prompt_text"] = prompt_text
+                    self.prompt_cache["prompt_lang"] = prompt_lang
+                    phones, bert_features, norm_text = \
+                        self.text_preprocessor.segment_and_extract_feature_for_text(
+                                                                            prompt_text, 
+                                                                            prompt_lang)
+                    self.prompt_cache["phones"] = phones
+                    self.prompt_cache["bert_features"] = bert_features
+                    self.prompt_cache["norm_text"] = norm_text
+            
+            if prompt_cache_path not in ["", None]:
+                os.makedirs(os.path.dirname(prompt_cache_path), exist_ok=True)
+                with open(prompt_cache_path, "wb") as f:
+                    pickle.dump(self.prompt_cache, f)
+                print(i18n("参考音频缓存已保存"))
+                self.prompt_cache_path = prompt_cache_path
 
         ###### text preprocessing ########
         t1 = ttime()
