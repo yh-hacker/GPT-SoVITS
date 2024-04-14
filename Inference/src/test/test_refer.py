@@ -7,10 +7,15 @@ from Inference.src.TTS_Task import TTS_Task
 gsv_instance = GSV_Instance()
 task = TTS_Task()
 
+task.character = "Hutao"
 task.text = "你好，我是一个测试文本。"
+
 
 gen = gsv_instance.generate_from_text(task)
 sr, audio = next(gen)
+
+gsv_instance.tts_pipline._set_prompt_semantic(r"")
+
 
 import tempfile
 import soundfile as sf

@@ -110,11 +110,13 @@ def auto_generate_infer_config(character_path):
     else:
         return "Required model files (.ckpt or .pth) not found in character_path directory."
 
-def update_character_info():
+def update_character_info(models_path:str=None):
     # try:
     #     with open(os.path.join(models_path, "character_info.json"), "r", encoding='utf-8') as f:
     #         default_character = json.load(f).get("deflaut_character", None)
     # except:
+    if models_path in [None, ""]:
+        models_path = inference_config.models_path
     default_character = ""
     characters_and_emotions = {}
     for character_subdir in [f for f in os.listdir(models_path) if os.path.isdir(os.path.join(models_path, f))]:
@@ -196,7 +198,7 @@ def get_params_config():
 global params_config
 params_config = get_params_config()
 
-def get_deflaut_character_name():
+def get_deflaut_character_name(models_path:str=None):
     global default_character
     try:
         return default_character
@@ -208,7 +210,7 @@ def get_deflaut_character_name():
             default_character=None
             
         if default_character is None:
-            characters_and_emotions = update_character_info()["characters_and_emotions"]
+            characters_and_emotions = update_character_info(models_path)["characters_and_emotions"]
             default_character = list(characters_and_emotions.keys())[0]
 
         return default_character

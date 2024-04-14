@@ -609,6 +609,7 @@ class TTS:
         text_lang:str = inputs.get("text_lang", "")
         
         prompt_cache_path:str = inputs.get("prompt_cache_path", "")
+        test_mode:bool = inputs.get("test_mode", False)
         
         ref_audio_path:str = inputs.get("ref_audio_path", "")
         prompt_text:str = inputs.get("prompt_text", "")
@@ -662,9 +663,11 @@ class TTS:
                     self.prompt_cache = pickle.load(f)
                 print(i18n("参考音频缓存已加载"))
                 self.prompt_cache_path = prompt_cache_path
-        else:
+        elif not test_mode:
+            # when in test mode, the prompt_cache should be set manually.
             if (ref_audio_path is not None) and (ref_audio_path != self.prompt_cache["ref_audio_path"]):
                 self.set_ref_audio(ref_audio_path)
+                self.prompt_cache["ref_audio_path"] = ref_audio_path
 
             if not no_prompt_text:
                 prompt_text = prompt_text.strip("\n")
@@ -686,6 +689,7 @@ class TTS:
                 with open(prompt_cache_path, "wb") as f:
                     pickle.dump(self.prompt_cache, f)
                 print(i18n("参考音频缓存已保存"))
+                
 
         ###### text preprocessing ########
         t1 = ttime()

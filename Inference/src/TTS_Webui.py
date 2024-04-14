@@ -26,7 +26,6 @@ default_word_count = inference_config.default_word_count
 enable_auth = inference_config.enable_auth
 is_classic = inference_config.is_classic
 is_share = inference_config.is_share
-models_path = inference_config.models_path
 default_username, default_password = "admin", "admin123"
 if enable_auth:
     users = inference_config.users

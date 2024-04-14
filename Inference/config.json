@@ -9,6 +9,7 @@
     "max_word_count": 100,
     "max_text_length": -1,
     "is_share": "false",
+    "save_prompt_cache": "true",
 
     "备注0": "locale是语言环境，auto表示自动选择，如果你想要强制指定语言环境，可以填写zh_CN或者en_US等等",
     "备注1": "路径可以填写绝对路径或者相对路径，相对路径指的是在主项目根目录的相对路径",
