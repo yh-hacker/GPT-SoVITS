@@ -11,7 +11,7 @@ GPT_weights
 SoVITS_weights
 TEMP
 PortableGit
-prompt_cache
+cache
 
 ffmpeg.exe
 ffprobe.exe

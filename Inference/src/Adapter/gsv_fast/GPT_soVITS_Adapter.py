@@ -3,7 +3,7 @@ import os, json, sys
 import threading
 
 from Inference.src.TTS_Task import TTS_Task
-from Inference.src.ssml_dealer import SSML_Dealer
+from .ssml_dealer import SSML_Dealer
 
 import hashlib  
 
@@ -152,6 +152,12 @@ class GSV_Instance:
     def generate_from_ssml(self, task: TTS_Task):
         dealer = SSML_Dealer()
         return dealer.generate_from_ssml(task.ssml, self)
+    
+    def generate(self, task: TTS_Task):
+        if task.task_type == "text":
+            return self.generate_from_text(task)
+        elif task.task_type == "ssml":
+            return self.generate_from_ssml(task)
 
     def get_wav_from_text_api(
         self,
@@ -209,7 +215,7 @@ class GSV_Instance:
             md5.update(prompt_text.encode())
             md5.update(prompt_language.encode())
             short_md5 = md5.hexdigest()[:8]
-            prompt_cache_path = f"prompt_cache/prompt_cache_{short_md5}.pickle"
+            prompt_cache_path = f"cache/prompt_cache/prompt_cache_{short_md5}.pickle"
 
         try:
             text_language = dict_language[text_language]
