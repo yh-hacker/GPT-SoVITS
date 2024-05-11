@@ -174,7 +174,7 @@ try:
 except:
     max_text_length = -1
 
-from webui.builders.gradio_builder import GradioTabBuilder
+from webuis.builders.gradio_builder import GradioTabBuilder
 
 ref_settings = tts_synthesizer.ui_config.get("ref_settings", [])
 basic_settings = tts_synthesizer.ui_config.get("basic_settings", [])

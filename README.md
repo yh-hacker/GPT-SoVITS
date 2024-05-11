@@ -71,7 +71,7 @@ trained
 
 ### Add a emotion for your model
 
-To make that, open the Model Manage Tool (10.bat /webui/character_manager/webui.py)
+To make that, open the Model Manage Tool (10.bat /webuis/character_manager/webui.py)
 
 It can assign a reference audio to each emotion, aiming to achieve the implementation of emotion options.
 
