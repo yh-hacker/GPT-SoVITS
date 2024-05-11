@@ -1,1 +1,0 @@
-from .GPT_soVITS_Adapter import GSV_Instance

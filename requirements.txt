@@ -10,7 +10,7 @@ tensorboard
 librosa==0.9.2
 numba
 pytorch-lightning
-gradio==4.19
+gradio>=4.29
 gradio_client
 ffmpeg-python
 onnxruntime

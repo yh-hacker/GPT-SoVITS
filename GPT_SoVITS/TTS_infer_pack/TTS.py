@@ -37,7 +37,7 @@ default:
   device: cpu
   is_half: false
   bert_base_path: GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large
-  cnhuhbert_base_path: GPT_SoVITS/pretrained_models/chinese-hubert-base
+  cnhubert_base_path: GPT_SoVITS/pretrained_models/chinese-hubert-base
   t2s_weights_path: GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt
   vits_weights_path: GPT_SoVITS/pretrained_models/s2G488k.pth
   
@@ -45,7 +45,7 @@ custom:
   device: cuda
   is_half: true
   bert_base_path: GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large
-  cnhuhbert_base_path: GPT_SoVITS/pretrained_models/chinese-hubert-base
+  cnhubert_base_path: GPT_SoVITS/pretrained_models/chinese-hubert-base
   t2s_weights_path: GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt
   vits_weights_path: GPT_SoVITS/pretrained_models/s2G488k.pth
 
@@ -80,7 +80,7 @@ class TTS_Config:
                 "is_half": False,
                 "t2s_weights_path": "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt",
                 "vits_weights_path": "GPT_SoVITS/pretrained_models/s2G488k.pth",
-                "cnhuhbert_base_path": "GPT_SoVITS/pretrained_models/chinese-hubert-base",
+                "cnhubert_base_path": "GPT_SoVITS/pretrained_models/chinese-hubert-base",
                 "bert_base_path": "GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large",
             }
     configs:dict = None
@@ -114,7 +114,7 @@ class TTS_Config:
         self.t2s_weights_path = self.configs.get("t2s_weights_path", None)
         self.vits_weights_path = self.configs.get("vits_weights_path", None)
         self.bert_base_path = self.configs.get("bert_base_path", None)
-        self.cnhuhbert_base_path = self.configs.get("cnhuhbert_base_path", None)
+        self.cnhubert_base_path = self.configs.get("cnhubert_base_path", None)
 
         
         if (self.t2s_weights_path in [None, ""]) or (not os.path.exists(self.t2s_weights_path)):
@@ -126,9 +126,9 @@ class TTS_Config:
         if (self.bert_base_path in [None, ""]) or (not os.path.exists(self.bert_base_path)):
             self.bert_base_path = self.default_configs['bert_base_path']
             print(f"fall back to default bert_base_path: {self.bert_base_path}")
-        if (self.cnhuhbert_base_path in [None, ""]) or (not os.path.exists(self.cnhuhbert_base_path)):
-            self.cnhuhbert_base_path = self.default_configs['cnhuhbert_base_path']
-            print(f"fall back to default cnhuhbert_base_path: {self.cnhuhbert_base_path}")
+        if (self.cnhubert_base_path in [None, ""]) or (not os.path.exists(self.cnhubert_base_path)):
+            self.cnhubert_base_path = self.default_configs['cnhubert_base_path']
+            print(f"fall back to default cnhubert_base_path: {self.cnhubert_base_path}")
         self.update_configs()
         
         
@@ -160,8 +160,8 @@ class TTS_Config:
             
         if configs_path is None:
             configs_path = self.configs_path
-        with open(configs_path, 'w') as f:
-            yaml.dump(configs, f)
+        # with open(configs_path, 'w') as f:
+        #     yaml.dump(configs, f)
 
     def update_configs(self):
         self.config = {
@@ -170,7 +170,7 @@ class TTS_Config:
             "t2s_weights_path"   : self.t2s_weights_path,
             "vits_weights_path"  : self.vits_weights_path,
             "bert_base_path"     : self.bert_base_path,
-            "cnhuhbert_base_path": self.cnhuhbert_base_path,
+            "cnhubert_base_path": self.cnhubert_base_path,
         }
         return self.config
             
@@ -226,7 +226,7 @@ class TTS:
         # self.init_t2s_weights(self.configs.t2s_weights_path)
         # self.init_vits_weights(self.configs.vits_weights_path)
         self.init_bert_weights(self.configs.bert_base_path)
-        self.init_cnhuhbert_weights(self.configs.cnhuhbert_base_path)
+        self.init_cnhuhbert_weights(self.configs.cnhubert_base_path)
         # self.enable_half_precision(self.configs.is_half)
         
         
