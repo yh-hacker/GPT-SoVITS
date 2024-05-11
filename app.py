@@ -308,7 +308,15 @@ if app_config.also_enable_api == True:
     fastapi_app:FastAPI = app.app
     fastapi_app.add_api_route("/tts", tts, methods=["POST", "GET"])
     fastapi_app.add_api_route("/character_list", character_list, methods=["GET"])
-
+    
+    fastapi_app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+    
     local_link = f"http://127.0.0.1:{app_config.server_port}"
     link = local_link
     if app_config.is_share:
@@ -324,13 +332,6 @@ if app_config.also_enable_api == True:
     ipv4_link = f"http://{ipv4_address}:{app_config.server_port}"
     print(f"INFO:     Local Network URL: {ipv4_link}")
     
-    fastapi_app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
     fastapi_app = gr.mount_gradio_app(fastapi_app, app, path="/")
     uvicorn.run(fastapi_app, host=app_config.server_name, port=app_config.server_port)
 else:

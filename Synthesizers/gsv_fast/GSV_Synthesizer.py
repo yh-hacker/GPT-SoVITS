@@ -131,19 +131,21 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
         return self.load_character(character)
 
     def load_character(self, character):
-        if character in ["", None] and self.character in ["", None]:
-            character = self.default_character
-        if self.character not in ["", None]:
-            if type(character) != str:
-                raise Exception(f"The type of character name should be str, but got {type(character)}")
-            if self.character.lower() == character.lower():
+        if character in ["", None]:
+            if self.character not in ["", None]:
                 return
+            else:
+                character = self.default_character
+                print(f"{character}为空，尝试切换到默认角色{self.default_character}")
+                return self.load_character(character)
+        if str(character).lower() == str(self.character).lower():
+            return
         character_path=os.path.join(self.models_path, character)
         if not os.path.exists(character_path):
-            print(f"找不到角色文件夹: {character}，已自动切换到默认角色")
-            character = self.default_character
-            return self.load_character(character)
+            print(f"找不到角色文件夹: {character}，沿用之前的角色{self.character}")
+            return
             # raise Exception(f"Can't find character folder: {character}")
+        assert os.path.exists(character_path), f"找不到角色文件夹: {character}"
         try:
             # 加载配置
             config = load_infer_config(character_path)
@@ -161,7 +163,7 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
             except:
                 # 报错
                 raise Exception("找不到模型文件！请把有效模型放置在模型文件夹下，确保其中至少有pth、ckpt和wav三种文件。")
-        # 修改权重
+        
         self.character = character
 
         t0 = tt()
@@ -229,7 +231,8 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
         m.update(string.encode())
         return m.hexdigest()[:8]
     def get_ref_infos(self, character, emotion) -> Tuple[str, str, str]:
-        
+        if self.debug_mode:
+            print(f"try to get ref infos, character: {character}, emotion: {emotion}")
         character_path = os.path.join(self.models_path, character)
         config: Dict[str, Any] = load_infer_config(character_path)
         emotion_dict: Dict = config.get("emotion_list", None)
