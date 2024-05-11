@@ -9,7 +9,7 @@ import wave, io
 # 在开头加入路径
 import os, sys
 now_dir = os.getcwd()
-sys.path.append(now_dir)
+sys.path.insert(0, now_dir)
 
 import logging
 logging.getLogger("markdown_it").setLevel(logging.ERROR)

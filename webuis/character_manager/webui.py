@@ -59,6 +59,7 @@ translated_language_dict = {}
 for language in language_list:
     translated_language_dict[language] = language
     translated_language_dict[i18n(language)] = language
+    translated_language_dict["多语种混合"] = "auto"
 
 # 预先建立相当数量的情感选择框
 all_emotion_num=len(emotional_styles)

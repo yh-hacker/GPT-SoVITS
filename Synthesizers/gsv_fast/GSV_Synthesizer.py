@@ -12,8 +12,6 @@ import numpy as np
 import hashlib  
 import soundfile as sf
 
-sys.path.append(".")
-
 from .gsv_config import load_infer_config, auto_generate_infer_config, get_device_info
 from datetime import datetime
 
