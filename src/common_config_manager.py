@@ -2,7 +2,7 @@ import os, sys, json
 from typing import List, Any, Optional ,Dict, Literal   
 from pydantic import BaseModel, Field, model_validator
 
-__version__ = "1.0.1"
+__version__ = "2.6.1"
 
 from Synthesizers.base import load_config
 

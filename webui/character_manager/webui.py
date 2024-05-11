@@ -29,19 +29,19 @@ infer_config = {
 }
 
 # 取得模型文件夹路径
-config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.json")
-
+config_path = "gsv_config.json"
+state["models_path"] = "trained"
+locale_language = "auto"
 if os.path.exists(config_path):
     with open(config_path, 'r', encoding='utf-8') as f:
         config = json.load(f)
         state["models_path"] = config.get("models_path", "trained")
-        locale_language = str(config.get("locale", "auto"))
-        locale_language = None if locale_language.lower() == "auto" else locale_language
+        
         
 from tools.i18n.i18n import I18nAuto
 
 
-i18n = I18nAuto(locale_language ,os.path.join(os.path.dirname(os.path.dirname(__file__)), "i18n/locale"))
+i18n = I18nAuto(None, os.path.join(os.path.dirname(__file__), "i18n/locale"))
 
 # 微软提供的SSML情感表
 emotional_styles = [
@@ -55,12 +55,10 @@ emotional_styles = [
 ]
 
 language_list = ["auto", "zh", "en", "ja", "all_zh", "all_ja"]
-translated_language_list = [i18n(language) for language in language_list]
-language_dict = dict(zip(translated_language_list, language_list))
-
-translated_language_dict = dict(zip(language_list, translated_language_list))
-translated_language_dict.update(dict(zip(translated_language_list, translated_language_list)))
-translated_language_dict["多语种混合"] = i18n("auto")
+translated_language_dict = {}
+for language in language_list:
+    translated_language_dict[language] = language
+    translated_language_dict[i18n(language)] = language
 
 # 预先建立相当数量的情感选择框
 all_emotion_num=len(emotional_styles)
@@ -76,7 +74,7 @@ def generate_info_bar():
         emotion, details = item
         index += 1
         column_items.append(gr.Number(index, visible=True, scale=1))
-        column_items.append(gr.Dropdown(choices=translated_language_list, value=translated_language_dict[details['prompt_language']], visible=True, interactive=True, scale=3, label=i18n("提示语言")))
+        column_items.append(gr.Dropdown(choices=[(i18n(language), language) for language in language_list], value=translated_language_dict[details['prompt_language']], visible=True, interactive=True, scale=3, label=i18n("提示语言")))
         column_items.append(gr.Dropdown(choices=emotional_styles, value=emotion, visible=True, interactive=True, scale=3, allow_custom_value=True, label=i18n("情感风格")))
         column_items.append(gr.Dropdown(choices=state["wav_file_found"], visible=True, value=details['ref_wav_path'], scale=8, allow_custom_value=True, label=i18n("参考音频路径")))
         column_items.append(gr.Textbox(value=details['prompt_text'], visible=True, scale=8, interactive=True, label=i18n("提示文本")))
@@ -242,7 +240,7 @@ def add_emotion():
     
     ref_wav_path = state['wav_file_found'][0]
     infer_config['emotion_list'].append([f'{unused_emotional_style}',    {
-        'ref_wav_path':ref_wav_path,'prompt_text':split_file_name(ref_wav_path),'prompt_language':translated_language_dict['auto']}])
+        'ref_wav_path':ref_wav_path,'prompt_text':split_file_name(ref_wav_path),'prompt_language':'auto'}])
     return generate_info_bar()
 
 
@@ -263,7 +261,7 @@ def change_parameters(index, wav_path, emotion_list, prompt_language, prompt_tex
     infer_config['emotion_list'][index-1][0]=emotion_list
     infer_config['emotion_list'][index-1][1]['ref_wav_path'] = wav_path
     infer_config['emotion_list'][index-1][1]['prompt_text'] = prompt_text
-    infer_config['emotion_list'][index-1][1]['prompt_language'] = language_dict[prompt_language]
+    infer_config['emotion_list'][index-1][1]['prompt_language'] = prompt_language
 
     return gr.Dropdown(value=wav_path), gr.Dropdown(value=emotion_list), gr.Dropdown(value=prompt_language), gr.Textbox(value=prompt_text), gr.Audio(os.path.join(state["edited_character_path"],wav_path))
 

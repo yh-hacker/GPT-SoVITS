@@ -43,17 +43,11 @@ You could see a bunch of bat files in `0 Bat Files/`
 
 #### Start with a single gradio file
 
-- Gradio Application: `app.py`  (In the root of GSVI)
-
-#### Start with backend and frontend mod
-
-- Flask Backend Program: `Inference/src/tts_backend.py`
-- Gradio Frontend Application: `Inference/src/TTS_Webui.py`
-- Other Frontend Applications or Services Using Our API 
+- Gradio Application: `app.py`  
 
 ### Model Management
 
-- Gradio Model Management Interface: `Inference/src/Character_Manager.py`
+- Gradio Model Management Interface: `webui/webui.py`
 
 ##  API Documentation
 
@@ -77,7 +71,7 @@ trained
 
 ### Add a emotion for your model
 
-To make that, open the Model Manage Tool (10.bat / Inference/src/Character_Manager.py)
+To make that, open the Model Manage Tool (10.bat /webui/character_manager/webui.py)
 
 It can assign a reference audio to each emotion, aiming to achieve the implementation of emotion options.
 

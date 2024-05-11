@@ -282,19 +282,19 @@ with gr.Blocks() as app:
 
     gr.HTML("<hr style='border-top: 1px solid #ccc; margin: 20px 0;' />")
     gr.HTML(
-        f"""<p>{i18n("这是Uni-TTS。")}{i18n("当前适配器：")} {synthesizer_name} {i18n("，当前版本：")}<a href="https://www.yuque.com/xter/zibxlp/awo29n8m6e6soru9">{frontend_version}</a>  {i18n("项目开源地址：")} <a href="https://github.com/X-T-E-R/TTS-for-GPT-soVITS">Github</a></p>
-            <p>{i18n("若有疑问或需要进一步了解，可参考文档：")}<a href="{i18n("https://www.yuque.com/xter/uni")}">{i18n("点击查看详细文档")}</a>。</p>"""
+        f"""<p>{i18n("这是GSVI。")}{i18n("，当前版本：")}<a href="https://www.yuque.com/xter/zibxlp/awo29n8m6e6soru9">{frontend_version}</a>  {i18n("项目开源地址：")} <a href="https://github.com/X-T-E-R/GPT-SoVITS-Inference">Github</a></p>
+            <p>{i18n("若有疑问或需要进一步了解，可参考文档：")}<a href="{i18n("https://www.yuque.com/xter/zibxlp")}">{i18n("点击查看详细文档")}</a>。</p>"""
     )
     # 以下是事件绑定
-    app.load(
-        change_character_list,
-        inputs=[character,  emotion],
-        outputs=[
-            character,
-            emotion,
-            characters_and_emotions,
-        ]
-    )            
+    # app.load(
+    #     change_character_list,
+    #     inputs=[character,  emotion],
+    #     outputs=[
+    #         character,
+    #         emotion,
+    #         characters_and_emotions,
+    #     ]
+    # )            
 
 
 if app_config.also_enable_api == True:
@@ -302,21 +302,28 @@ if app_config.also_enable_api == True:
     from pure_api import tts, character_list, set_tts_synthesizer
     from fastapi import FastAPI
     from fastapi.middleware.cors import CORSMiddleware
-    from src.api_utils import get_gradio_frp
+    from src.api_utils import get_gradio_frp, get_localhost_ipv4_address
     
     set_tts_synthesizer(tts_synthesizer)
     fastapi_app:FastAPI = app.app
     fastapi_app.add_api_route("/tts", tts, methods=["POST", "GET"])
     fastapi_app.add_api_route("/character_list", character_list, methods=["GET"])
-    
+
+    local_link = f"http://127.0.0.1:{app_config.server_port}"
+    link = local_link
     if app_config.is_share:
         share_url = get_gradio_frp(app_config.server_name, app_config.server_port, app.share_token)
         print("This share link expires in 72 hours.")
         print(f"Share URL: {share_url}")
-        if app_config.inbrowser:
-            import webbrowser
-            webbrowser.open(share_url)
+        link = share_url
+    if app_config.inbrowser:
+        import webbrowser
+        webbrowser.open(link)
 
+    ipv4_address = get_localhost_ipv4_address(app_config.server_name)
+    ipv4_link = f"http://{ipv4_address}:{app_config.server_port}"
+    print(f"INFO:     Local Network URL: {ipv4_link}")
+    
     fastapi_app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],

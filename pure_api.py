@@ -72,10 +72,13 @@ async def tts(request: Request):
         gen = tts_synthesizer.generate(task, return_type="numpy")
         return StreamingResponse(gen,  media_type='audio/wav')
 
+
+
+
 if __name__ == "__main__":
     # 动态导入合成器模块, 此处可写成 from Synthesizers.xxx import TTS_Synthesizer, TTS_Task
     from importlib import import_module
-    from src.api_utils import print_ipv4_ip
+    from src.api_utils import get_localhost_ipv4_address
     synthesizer_name = api_config.synthesizer
     synthesizer_module = import_module(f"Synthesizers.{synthesizer_name}")
     TTS_Synthesizer = synthesizer_module.TTS_Synthesizer
@@ -84,7 +87,9 @@ if __name__ == "__main__":
     print(f"Backend Version: {__version__}")
     tts_host = api_config.tts_host
     tts_port = api_config.tts_port
-    print_ipv4_ip(tts_host, tts_port)
+    ipv4_address = get_localhost_ipv4_address(tts_host)
+    ipv4_link = f"http://{ipv4_address}:{tts_port}"
+    print(f"INFO:     Local Network URL: {ipv4_link}")
     
     app = FastAPI()
 

@@ -45,7 +45,7 @@
       "type": "integer"
     },
     "is_share": {
-      "default": true,
+      "default": false,
       "description": "Flag to indicate if sharing is enabled",
       "label": "是否分享",
       "type": "boolean"
