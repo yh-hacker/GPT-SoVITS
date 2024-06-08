@@ -157,6 +157,7 @@ python -m nltk.downloader -d ./nltk_data averaged_perceptron_tagger cmudict
 ```
  - trained: trained models(From which you trained or borrowed from others)
 ```bash
+docker build -t gpt-sovits-inference:latest -f Dockerfile .
 docker run --rm -it -d --gpus="device=0" --env=is_half=False \
   --volume=<Replace with the path of your project>/GPT-SoVITS-Inference/output:/workspace/output \
   --volume=<Replace with the path of your project>/GPT-SoVITS-Inference/logs:/workspace/logs \
