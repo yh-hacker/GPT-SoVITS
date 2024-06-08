@@ -25,7 +25,7 @@ class GradioTabBuilder:
 
     component_group_list: List[List[ParamItem]]
     gradio_input_dict: Dict[str, Any]
-    def __init__(self, component_name_list: List[str|List[str]], params_config: Dict[str, ParamItem]):
+    def __init__(self, component_name_list: List[Union[str, List[str]]], params_config: Dict[str, ParamItem]):
         """
         Initializes the GradioTabBuilder object.
 
@@ -106,7 +106,8 @@ def emit_on_change(*data):
     """
     pass    
 
-def register_on_change(component_name_list: List[str|List[str]], all_gradio_components: Dict[str, Any]):
+def register_on_change(component_name_list: List[Union[str, List[str]]], all_gradio_components: Dict[str, Any]):
+
     """
     Registers an on_change function for the Gradio inputs.
 
