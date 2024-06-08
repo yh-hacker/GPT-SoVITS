@@ -146,9 +146,27 @@ Download pretrained models from [GPT-SoVITS Models](https://huggingface.co/lj199
 
 
 ## Docker
+Please prepare local path and models before running the following command.
+ - output:The output dirctory of wav files
+ - logs: for recording logs
+ - SoVITS_weights: SoVITS weights 
+ - GPT_SoVITS: all pretrained_models are in GPT_SoVITS/pretrained_models which is a big size
+ - nltk_data: nltk library, please download it with the following command:
+```bash
+python -m nltk.downloader -d ./nltk_data averaged_perceptron_tagger cmudict
+```
+ - trained: trained models(From which you trained or borrowed from others)
+```bash
+docker run --rm -it -d --gpus="device=0" --env=is_half=False \
+  --volume=<Replace with the path of your project>/GPT-SoVITS-Inference/output:/workspace/output \
+  --volume=<Replace with the path of your project>/GPT-SoVITS-Inference/logs:/workspace/logs \
+  --volume=<Replace with the path of your project>/GPT-SoVITS-Inference/SoVITS_weights:/workspace/SoVITS_weights \
+  --volume=<Replace with the path of your project>/GPT-SoVITS-Inference/GPT_SoVITS/:/workspace/GPT_SoVITS \
+  --volume=<Replace with the path of your project>/GPT-SoVITS-Inference/nltk_data:/usr/local/nltk_data \
+  --volume=<Replace with the path of your project>/GPT-SoVITS-Inference/trained:/workspace/trained \
+  --workdir=/workspace -p 5000:5000 --shm-size="16G" gpt-sovits-inference:latest
 
-Writing Now, Please Wait
-
+```
 Remove the `pyaudio` in the `requirements.txt` !!!!
 
 
