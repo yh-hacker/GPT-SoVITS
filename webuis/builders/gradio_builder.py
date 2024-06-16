@@ -106,7 +106,7 @@ def emit_on_change(*data):
     """
     pass    
 
-def register_on_change(component_name_list: List[str|List[str]], all_gradio_components: Dict[str, Any]):
+def register_on_change(component_name_list, all_gradio_components: Dict[str, Any]):
     """
     Registers an on_change function for the Gradio inputs.
 
