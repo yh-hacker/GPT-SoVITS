@@ -1,4 +1,4 @@
-__version__ = "2.4.3 240414"
+__version__ = "2.6.3"
 
 import os,  json
 import torch

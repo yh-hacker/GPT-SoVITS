@@ -49,6 +49,7 @@ TTS_Task = synthesizer_module.TTS_Task
 # 创建合成器实例
 tts_synthesizer:Base_TTS_Synthesizer = TTS_Synthesizer(debug_mode=True)
 
+    
 import soundfile as sf
 
 all_gradio_components = {}
@@ -297,6 +298,11 @@ with gr.Blocks() as app:
     # )            
 
 
+# 生成一句话充当测试，减少第一次请求的等待时间
+gen = tts_synthesizer.generate(tts_synthesizer.params_parser({"text":"你好，世界"}))
+next(gen)
+
+# 如果同时启用了API，则使用挂载到fastAPI的方式启动
 if app_config.also_enable_api == True:
     import uvicorn
     from pure_api import tts, character_list, set_tts_synthesizer

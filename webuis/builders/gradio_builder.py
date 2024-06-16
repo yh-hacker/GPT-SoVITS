@@ -106,6 +106,7 @@ def emit_on_change(*data):
     """
     pass    
 
+
 def register_on_change(component_name_list: List[Union[str, List[str]]], all_gradio_components: Dict[str, Any]):
 
     """

@@ -100,7 +100,7 @@ Or  ```pip install -r requirements.txt``` , and then double click the `install.b
 ### Linux
 
 ```bash
-conda create -n GPTSoVits python=3.9
+conda create -n GPTSoVits python=3.10
 conda activate GPTSoVits
 bash install.sh
 ```
@@ -112,7 +112,7 @@ bash install.sh
 First make sure you have installed FFmpeg by running `brew install ffmpeg` or `conda install ffmpeg`, then install by using the following commands:
 
 ```bash
-conda create -n GPTSoVits python=3.9
+conda create -n GPTSoVits python=3.10
 conda activate GPTSoVits
 
 pip install -r requirements.txt
