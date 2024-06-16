@@ -89,6 +89,7 @@ if __name__ == "__main__":
     # 生成一句话充当测试，减少第一次请求的等待时间
     gen = tts_synthesizer.generate(tts_synthesizer.params_parser({"text":"你好，世界"}) )
     next(gen)
+    
     # 打印一些辅助信息
     print(f"Backend Version: {__version__}")
     tts_host = api_config.tts_host
