@@ -83,7 +83,13 @@ if __name__ == "__main__":
     synthesizer_module = import_module(f"Synthesizers.{synthesizer_name}")
     TTS_Synthesizer = synthesizer_module.TTS_Synthesizer
     TTS_Task = synthesizer_module.TTS_Task
+    # 初始化合成器的类
     tts_synthesizer = TTS_Synthesizer(debug_mode=True)
+    
+    # 生成一句话充当测试，减少第一次请求的等待时间
+    gen = tts_synthesizer.generate(tts_synthesizer.params_parser({"text":"你好，世界"}) )
+    next(gen)
+    # 打印一些辅助信息
     print(f"Backend Version: {__version__}")
     tts_host = api_config.tts_host
     tts_port = api_config.tts_port
