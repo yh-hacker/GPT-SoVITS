@@ -666,6 +666,7 @@ class TTS:
         
         if prompt_cache_path not in ["", None] and os.path.exists(prompt_cache_path):
             if prompt_cache_path != self.prompt_cache_path:
+                del self.prompt_cache
                 with open(prompt_cache_path, "rb") as f:
                     self.prompt_cache = pickle.load(f)
                 print(i18n("参考音频缓存已加载"))
@@ -887,6 +888,8 @@ class TTS:
             self.init_vits_weights(self.configs.vits_weights_path)
             raise e
         finally:
+            if data is not None:
+                del data
             self.empty_cache()
     
     def empty_cache(self):

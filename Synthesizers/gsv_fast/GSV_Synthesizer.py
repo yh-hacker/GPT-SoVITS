@@ -3,7 +3,7 @@ import os, json, sys
 import threading
 from typing import Any, Union, Generator, Literal, List, Dict, Tuple
 from Synthesizers.base import Base_TTS_Synthesizer, load_config
-
+import re
 from .gsv_task import GSV_TTS_Task as TTS_Task
 from .ssml_dealer import SSML_Dealer
 
@@ -44,7 +44,6 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
     ui_config:dict = None
     tts_pipline:TTS = None
     character:str = None
-    lock:threading.Lock = None
 
     def __init__(self, config_path:str=None, **kwargs):
         super().__init__()
@@ -69,7 +68,6 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
         if self.default_character is None:
             self.default_character = next(iter(self.get_characters()), None)
 
-        self.lock = threading.Lock()
         self.load_character(self.default_character)
         ui_config_path = os.path.join("Synthesizers/gsv_fast/configs", "ui_config.json")
         with open(ui_config_path, 'r', encoding='utf-8') as f:
@@ -94,7 +92,9 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
         for chunk in chunks:
             sample_rate, audio_data = chunk
             if audio_data is not None:
-                yield audio_data.tobytes()
+                return_data = audio_data.tobytes()
+                del audio_data
+                yield return_data
 
     def get_characters(self) -> dict:
         characters_and_emotions = {}
@@ -227,12 +227,15 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
             sr, audio_data = next(gen)
             os.makedirs(os.path.dirname(save_path), exist_ok=True)
             sf.write(save_path, audio_data, sr)
+            del audio_data
             return save_path
+        
     @staticmethod
     def calc_short_md5(string):
         m = hashlib.md5()
         m.update(string.encode())
         return m.hexdigest()[:8]
+    
     def get_ref_infos(self, character, emotion) -> Tuple[str, str, str]:
         if self.debug_mode:
             print(f"try to get ref infos, character: {character}, emotion: {emotion}")
@@ -275,8 +278,8 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
         **kwargs
     ):
 
-        text = text.replace("\r", "\n").replace("<br>", "\n").replace("\t", " ")
-        text = text.replace("……","。").replace("…","。").replace("\n\n","\n").replace("。\n","\n").replace("\n", "。\n")
+        text = re.sub(r"\r|<br>", "\n", text)
+        text = re.sub(r"\t|……|…", "。", text)
         
         assert os.path.exists(ref_audio_path), f"找不到参考音频文件: {ref_audio_path}"
         prompt_cache_path = ""
@@ -321,11 +324,11 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
         }
         # 调用原始的get_tts_wav函数
         # 注意：这里假设get_tts_wav函数及其所需的其它依赖已经定义并可用
-        with self.lock:
-            if stream == False:
-                return self.tts_pipline.run(params)
-            else:
-                return self.get_streaming_tts_wav(params)
+ 
+        if stream == False:
+            return self.tts_pipline.run(params)
+        else:
+            return self.get_streaming_tts_wav(params)
 
     @staticmethod   
     def params_parser(data) -> TTS_Task:

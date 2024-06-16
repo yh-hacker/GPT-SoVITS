@@ -68,39 +68,6 @@ def split(todo_text):
             i_split_head += 1
     return todo_texts
 
-def cut_sentence_multilang(text, max_length=30):
-    # 初始化计数器
-    word_count = 0
-    in_word = False
-    
-    
-    for index, char in enumerate(text):
-        if char.isspace():  # 如果当前字符是空格
-            in_word = False
-        elif char.isascii() and not in_word:  # 如果是ASCII字符（英文）并且不在单词内
-            word_count += 1  # 新的英文单词
-            in_word = True
-        elif not char.isascii():  # 如果字符非英文
-            word_count += 1  # 每个非英文字符单独计为一个字
-        if word_count > max_length:
-            return text[:index], text[index:]
-    
-    return text, ""
-
-# contributed by XTer
-# 简单的按长度切分，不希望出现超长的句子
-def split_long_sentence(text, max_length=510):
-    
-    opts = []
-    sentences = text.split('\n')
-    for sentence in sentences:
-        prev_text , sentence = cut_sentence_multilang(sentence, max_length)
-        while sentence.strip() != "":
-            opts.append(prev_text)
-            prev_text , sentence = cut_sentence_multilang(sentence, max_length)
-        opts.append(prev_text)
-    return "\n".join(opts)
-
 # 不切
 @register_method("cut0")
 def cut0(inp):
@@ -205,7 +172,41 @@ def count_words_multilang(text):
             word_count += 1  # 每个非英文字符单独计为一个字
     
     return word_count
+
+
+def cut_sentence_multilang(text, max_length=30):
+    # 初始化计数器
+    word_count = 0
+    in_word = False
     
+    
+    for index, char in enumerate(text):
+        if char.isspace():  # 如果当前字符是空格
+            in_word = False
+        elif char.isascii() and not in_word:  # 如果是ASCII字符（英文）并且不在单词内
+            word_count += 1  # 新的英文单词
+            in_word = True
+        elif not char.isascii():  # 如果字符非英文
+            word_count += 1  # 每个非英文字符单独计为一个字
+        if word_count > max_length:
+            return text[:index], text[index:]
+    
+    return text, ""
+
+# contributed by XTer
+# 简单的按长度切分，不希望出现超长的句子
+def split_long_sentence(text, max_length=510):
+    
+    opts = []
+    sentences = text.split('\n')
+    for sentence in sentences:
+        prev_text , sentence = cut_sentence_multilang(sentence, max_length)
+        while sentence.strip() != "":
+            opts.append(prev_text)
+            prev_text , sentence = cut_sentence_multilang(sentence, max_length)
+        opts.append(prev_text)
+    return "\n".join(opts)
+
 
 # contributed by https://github.com/X-T-E-R/GPT-SoVITS-Inference/blob/main/GPT_SoVITS/TTS_infer_pack/text_segmentation_method.py
 @register_method("auto_cut")

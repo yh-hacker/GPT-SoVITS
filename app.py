@@ -283,7 +283,7 @@ with gr.Blocks() as app:
 
     gr.HTML("<hr style='border-top: 1px solid #ccc; margin: 20px 0;' />")
     gr.HTML(
-        f"""<p>{i18n("这是GSVI。")}{i18n("，当前版本：")}<a href="https://www.yuque.com/xter/zibxlp/awo29n8m6e6soru9">{frontend_version}</a>  {i18n("项目开源地址：")} <a href="https://github.com/X-T-E-R/GPT-SoVITS-Inference">Github</a></p>
+        f"""<p>{i18n("这是GSVI。")}{i18n("当前版本：")}<a href="https://www.yuque.com/xter/zibxlp/awo29n8m6e6soru9">{frontend_version}</a>  {i18n("项目开源地址：")} <a href="https://github.com/X-T-E-R/GPT-SoVITS-Inference">Github</a></p>
             <p>{i18n("若有疑问或需要进一步了解，可参考文档：")}<a href="{i18n("https://www.yuque.com/xter/zibxlp")}">{i18n("点击查看详细文档")}</a>。</p>"""
     )
     # 以下是事件绑定
