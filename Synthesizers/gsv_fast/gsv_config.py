@@ -109,12 +109,12 @@ def auto_generate_infer_config(character_path):
         r"简介": r"这是一个配置文件适用于https://github.com/X-T-E-R/TTS-for-GPT-soVITS，是一个简单好用的前后端项目"
     }
 
-    # If wav file is also found, update infer_config to include ref_audio_path, prompt_text, and prompt_language
+    # If wav file is also found, update infer_config to include ref_wav_path, prompt_text, and prompt_language
     if wav_file_found:
         wav_file_name = os.path.splitext(os.path.basename(wav_file_found))[0]  # Extract the filename without extension
         infer_config["emotion_list"] = {
             "default": {
-                "ref_audio_path": wav_file_found,
+                "ref_wav_path": wav_file_found,
                 "prompt_text": wav_file_name,
                 "prompt_language": "多语种混合"
             }
